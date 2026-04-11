@@ -1,0 +1,56 @@
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
+
+:root {
+  --bg: #f7f8fa;
+  --surface: #ffffff;
+  --card: #ffffff;
+  --border: #e8ecf0;
+  --border-dark: #d0d7e0;
+  --ink: #0f1923;
+  --ink-muted: #4a5568;
+  --ink-faint: #8896a8;
+  --accent: #1a6b3c;
+  --accent-light: #e8f5ee;
+  --accent-mid: #2d8a55;
+  --red: #c0392b;
+  --red-light: #fdecea;
+  --amber: #d4860a;
+  --amber-light: #fef3dc;
+  --fd-color: #3b82f6;
+  --rd-color: #8b5cf6;
+  --mf-color: #1a6b3c;
+  --radius: 12px;
+  --radius-sm: 8px;
+  --shadow: 0 1px 4px rgba(15,25,35,0.06), 0 4px 16px rgba(15,25,35,0.04);
+  --shadow-md: 0 2px 8px rgba(15,25,35,0.08), 0 8px 24px rgba(15,25,35,0.06);
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  font-family: 'Sora', sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+a { color: inherit; text-decoration: none; }
+
+button {
+  cursor: pointer;
+  font-family: 'Sora', sans-serif;
+  border: none;
+  background: none;
+}
+
+input { font-family: 'Sora', sans-serif; }
