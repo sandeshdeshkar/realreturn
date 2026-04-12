@@ -3,135 +3,145 @@
 import { useState, useCallback } from 'react'
 import Link from 'next/link'
 
-interface CalcResult {
+// ─── Types ───────────────────────────────────────────────────
+interface Res {
   corpus: number; invested: number; gains: number; taxPaid: number
   postTax: number; realValue: number; realReturn: number
-  postTaxRate: number; inflationErosion: number; breakEvenInflation?: number
+  postTaxRate: number; breakEvenInflation?: number
 }
 
-function fmt(n: number): string {
+// ─── Pure helpers ────────────────────────────────────────────
+const fmt = (n: number) => {
   if (!isFinite(n) || isNaN(n)) return '₹0'
-  const abs = Math.abs(n), pre = n < 0 ? '-' : ''
-  if (abs >= 1e7) return pre + '₹' + (abs / 1e7).toFixed(2) + 'Cr'
-  if (abs >= 1e5) return pre + '₹' + (abs / 1e5).toFixed(2) + 'L'
-  return pre + '₹' + Math.round(abs).toLocaleString('en-IN')
+  const a = Math.abs(n), s = n < 0 ? '-' : ''
+  if (a >= 1e7) return s + '₹' + (a / 1e7).toFixed(2) + 'Cr'
+  if (a >= 1e5) return s + '₹' + (a / 1e5).toFixed(2) + 'L'
+  return s + '₹' + Math.round(a).toLocaleString('en-IN')
 }
-function fmtP(n: number): string {
-  if (!isFinite(n) || isNaN(n)) return '0.00%'
-  return (n >= 0 ? '+' : '') + n.toFixed(2) + '%'
-}
-function fisher(nom: number, inf: number): number {
-  return ((1 + nom / 100) / (1 + inf / 100) - 1) * 100
-}
-function rrColor(v: number): string {
-  return v > 0.5 ? '#1a6b3c' : v < 0 ? '#c0392b' : '#d4860a'
-}
+const pct = (n: number) => (!isFinite(n) || isNaN(n)) ? '0.00%' : (n >= 0 ? '+' : '') + n.toFixed(2) + '%'
+const fisher = (nom: number, inf: number) => ((1 + nom / 100) / (1 + inf / 100) - 1) * 100
+const rrCol = (v: number) => v > 0.5 ? '#1a6b3c' : v < 0 ? '#c0392b' : '#d4860a'
 
-function SliderRow({ label, val, set, min, max, step, display, note }: {
+// ─── Slider ──────────────────────────────────────────────────
+function Slider({ label, val, set, min, max, step, disp, note }: {
   label: string; val: number; set: (v: number) => void
-  min: number; max: number; step: number; display: string; note?: string
+  min: number; max: number; step: number; disp: string; note?: string
 }) {
   return (
-    <div style={{ marginBottom: '14px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-        <span style={{ fontSize: '12px', color: '#4a5568' }}>{label}</span>
-        <span style={{ fontSize: '12px', fontWeight: 600, color: '#0f1923', fontFamily: 'DM Mono, monospace' }}>{display}</span>
+    <div style={{ marginBottom: '18px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '8px' }}>
+        <label style={{ fontSize: '14px', color: '#374151', fontWeight: 500 }}>{label}</label>
+        <span style={{ fontSize: '14px', fontWeight: 700, color: '#111827', fontFamily: 'DM Mono, monospace', background: '#f3f4f6', padding: '2px 8px', borderRadius: '6px' }}>{disp}</span>
       </div>
       <input type="range" min={min} max={max} step={step} value={val}
-        onChange={e => set(parseFloat(e.target.value))} />
-      {note && <div style={{ fontSize: '10px', color: '#8896a8', marginTop: '3px' }}>{note}</div>}
+        onChange={e => set(+e.target.value)}
+        style={{ width: '100%', height: '6px', accentColor: '#1a6b3c', cursor: 'pointer' }} />
+      {note && <p style={{ fontSize: '11px', color: '#9ca3af', marginTop: '4px' }}>{note}</p>}
     </div>
   )
 }
 
-function SegToggle({ options, value, onChange, color }: {
-  options: { val: string; label: string }[]
-  value: string; onChange: (v: string) => void; color: string
+// ─── Seg ─────────────────────────────────────────────────────
+function Seg({ opts, val, set, col }: {
+  opts: { v: string; l: string }[]; val: string; set: (v: string) => void; col: string
 }) {
   return (
-    <div style={{ display: 'flex', background: '#f7f8fa', border: '1px solid #e8ecf0', borderRadius: '8px', overflow: 'hidden', marginBottom: '12px' }}>
-      {options.map(o => (
-        <button key={o.val} onClick={() => onChange(o.val)} style={{
-          flex: 1, padding: '8px 4px', fontSize: '11px', fontWeight: 600,
-          background: value === o.val ? color : 'transparent',
-          color: value === o.val ? '#fff' : '#8896a8',
-          border: 'none', cursor: 'pointer', transition: 'all 0.15s',
-        }}>{o.label}</button>
+    <div style={{ display: 'flex', border: `1px solid ${col}30`, borderRadius: '10px', overflow: 'hidden', marginBottom: '14px' }}>
+      {opts.map(o => (
+        <button key={o.v} onClick={() => set(o.v)} style={{
+          flex: 1, padding: '10px 6px', fontSize: '13px', fontWeight: 600, border: 'none', cursor: 'pointer',
+          background: val === o.v ? col : '#f9fafb',
+          color: val === o.v ? '#fff' : '#6b7280',
+          transition: 'all 0.15s',
+        }}>{o.l}</button>
       ))}
     </div>
   )
 }
 
-function SectionLabel({ color, label }: { color: string; label: string }) {
+// ─── Section label ───────────────────────────────────────────
+function SecLabel({ col, txt }: { col: string; txt: string }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '10px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '1px', color: '#8896a8', margin: '16px 0 10px' }}>
-      <span style={{ width: '6px', height: '6px', borderRadius: '2px', background: color, display: 'inline-block', flexShrink: 0 }} />
-      {label}
+    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '20px 0 12px', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1.2px', color: '#6b7280' }}>
+      <span style={{ width: '8px', height: '8px', borderRadius: '3px', background: col, display: 'inline-block', flexShrink: 0 }} />
+      {txt}
     </div>
   )
 }
 
-function ResultCard({ label, color, data, isWinner, inclTax, inclInf, tax, inf }: {
-  label: string; color: string; data: CalcResult
-  isWinner: boolean; inclTax: boolean; inclInf: boolean; tax: number; inf: number
+// ─── Result card ─────────────────────────────────────────────
+function Card({ label, col, d, winner, inclTax, inclInf, tax, inf }: {
+  label: string; col: string; d: Res; winner: boolean
+  inclTax: boolean; inclInf: boolean; tax: number; inf: number
 }) {
-  const rr = inclInf ? data.realReturn : data.postTaxRate
-  const sublabel = inclInf && inclTax
-    ? `real/yr · after ${tax}% tax & ${inf}% inflation`
-    : inclTax ? `post-tax/yr · after ${tax}% tax`
-    : inclInf ? `real/yr · after ${inf}% inflation`
-    : 'stated rate'
+  const rr = inclInf ? d.realReturn : d.postTaxRate
+  const sub = inclInf && inclTax ? `after ${tax}% tax & ${inf}% inflation`
+    : inclTax ? `after ${tax}% tax` : inclInf ? `after ${inf}% inflation` : 'no adjustments'
 
   return (
     <div style={{
       background: '#fff',
-      border: isWinner ? `2px solid ${color}` : '1px solid #e8ecf0',
-      borderRadius: '12px', overflow: 'hidden',
-      boxShadow: isWinner ? `0 4px 20px ${color}25` : 'none',
+      border: winner ? `2px solid ${col}` : '1px solid #e5e7eb',
+      borderRadius: '16px', overflow: 'hidden',
+      boxShadow: winner ? `0 0 0 4px ${col}18` : '0 1px 3px rgba(0,0,0,0.06)',
+      marginBottom: '12px',
     }}>
-      <div style={{ height: '3px', background: color }} />
-      {isWinner && (
-        <div style={{ background: color, color: '#fff', fontSize: '9px', fontWeight: 700, textAlign: 'center', padding: '3px', letterSpacing: '1px' }}>
-          BEST REAL RETURN
+      {/* top stripe */}
+      <div style={{ height: '4px', background: col }} />
+      {winner && (
+        <div style={{ background: col, color: '#fff', textAlign: 'center', fontSize: '10px', fontWeight: 700, padding: '4px', letterSpacing: '1px' }}>
+          🏆 BEST REAL RETURN
         </div>
       )}
-      <div style={{ padding: '14px' }}>
-        <div style={{ fontSize: '10px', fontWeight: 600, color, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>{label}</div>
-        <div style={{ fontSize: '32px', fontWeight: 700, fontFamily: 'DM Mono, monospace', color: rrColor(rr), letterSpacing: '-1px', lineHeight: 1 }}>
-          {fmtP(rr)}
+
+      <div style={{ padding: '16px' }}>
+        {/* Header */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+          <div>
+            <div style={{ fontSize: '11px', fontWeight: 700, color: col, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px' }}>{label}</div>
+            <div style={{ fontSize: '34px', fontWeight: 800, fontFamily: 'DM Mono, monospace', color: rrCol(rr), letterSpacing: '-1.5px', lineHeight: 1 }}>
+              {pct(rr)}
+            </div>
+            <div style={{ fontSize: '11px', color: '#9ca3af', marginTop: '4px' }}>{sub}</div>
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            <div style={{ fontSize: '10px', color: '#9ca3af', marginBottom: '2px' }}>Real Value</div>
+            <div style={{ fontSize: '18px', fontWeight: 700, fontFamily: 'DM Mono, monospace', color: '#1a6b3c' }}>{fmt(d.realValue)}</div>
+          </div>
         </div>
-        <div style={{ fontSize: '10px', color: '#8896a8', marginTop: '3px', marginBottom: '14px' }}>{sublabel}</div>
-        <div style={{ background: '#f7f8fa', borderRadius: '8px', padding: '10px', marginBottom: '10px' }}>
+
+        {/* Divider */}
+        <div style={{ height: '1px', background: '#f3f4f6', margin: '12px 0' }} />
+
+        {/* 4-row breakdown */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '12px' }}>
           {[
-            { dot: '#9ca3af', label: 'Invested', val: fmt(data.invested), vc: '#4a5568' },
-            { dot: '#9ca3af', label: 'Gross Corpus', val: fmt(data.corpus), vc: '#4a5568' },
-            { dot: '#f59e0b', label: 'Post-Tax', val: fmt(data.postTax), vc: '#d4860a' },
-            { dot: '#1a6b3c', label: 'Real Value', val: fmt(data.realValue), vc: '#1a6b3c' },
-          ].map((row, i) => (
-            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: i < 3 ? '6px' : 0 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '11px', color: '#8896a8' }}>
-                <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: row.dot, display: 'inline-block', flexShrink: 0 }} />
-                {row.label}
-              </div>
-              <span style={{ fontSize: '11px', fontWeight: 600, fontFamily: 'DM Mono, monospace', color: row.vc }}>{row.val}</span>
+            { l: 'Invested', v: fmt(d.invested), c: '#6b7280' },
+            { l: 'Gross Corpus', v: fmt(d.corpus), c: '#6b7280' },
+            { l: 'Post-Tax', v: fmt(d.postTax), c: '#d97706' },
+            { l: 'Real Value', v: fmt(d.realValue), c: '#1a6b3c' },
+          ].map((r, i) => (
+            <div key={i} style={{ background: '#f9fafb', borderRadius: '8px', padding: '8px 10px' }}>
+              <div style={{ fontSize: '10px', color: '#9ca3af', marginBottom: '2px' }}>{r.l}</div>
+              <div style={{ fontSize: '13px', fontWeight: 700, fontFamily: 'DM Mono, monospace', color: r.c }}>{r.v}</div>
             </div>
           ))}
         </div>
-        <div style={{ background: '#fdecea', borderRadius: '8px', padding: '10px' }}>
-          <div style={{ fontSize: '10px', fontWeight: 600, color: '#c0392b', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>💸 What you lost</div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', marginBottom: '4px' }}>
-            <span style={{ color: 'rgba(192,57,43,0.8)' }}>Tax paid</span>
-            <span style={{ fontFamily: 'DM Mono, monospace', color: '#c0392b', fontWeight: 600 }}>{fmt(data.taxPaid)}</span>
+
+        {/* Losses */}
+        <div style={{ background: '#fff5f5', border: '1px solid #fed7d7', borderRadius: '10px', padding: '12px' }}>
+          <div style={{ fontSize: '11px', fontWeight: 700, color: '#e53e3e', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>💸 Lost to</div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+            <span style={{ fontSize: '12px', color: '#fc8181' }}>Tax</span>
+            <span style={{ fontSize: '12px', fontWeight: 700, fontFamily: 'DM Mono, monospace', color: '#e53e3e' }}>{fmt(d.taxPaid)}</span>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px' }}>
-            <span style={{ color: 'rgba(192,57,43,0.8)' }}>Inflation erosion</span>
-            <span style={{ fontFamily: 'DM Mono, monospace', color: '#c0392b', fontWeight: 600 }}>
-              {inclInf ? fmt(data.postTax - data.realValue) : '—'}
-            </span>
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <span style={{ fontSize: '12px', color: '#fc8181' }}>Inflation erosion</span>
+            <span style={{ fontSize: '12px', fontWeight: 700, fontFamily: 'DM Mono, monospace', color: '#e53e3e' }}>{inclInf ? fmt(d.postTax - d.realValue) : '—'}</span>
           </div>
-          {data.breakEvenInflation !== undefined && (
-            <div style={{ marginTop: '6px', paddingTop: '6px', borderTop: '1px solid rgba(192,57,43,0.15)', fontSize: '10px', color: '#d4860a' }}>
-              Break-even inflation: <strong>{data.breakEvenInflation.toFixed(2)}%</strong>
+          {d.breakEvenInflation !== undefined && (
+            <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid #fed7d7', fontSize: '11px', color: '#d97706' }}>
+              FD breaks even at <strong>{d.breakEvenInflation.toFixed(1)}%</strong> inflation
             </div>
           )}
         </div>
@@ -140,7 +150,12 @@ function ResultCard({ label, color, data, isWinner, inclTax, inclInf, tax, inf }
   )
 }
 
+// ─── Main ────────────────────────────────────────────────────
 export default function Calculator() {
+  // tab (mobile)
+  const [tab, setTab] = useState<'inputs' | 'results' | 'insights'>('inputs')
+
+  // inputs
   const [years, setYears] = useState(10)
   const [tax, setTax] = useState(30)
   const [inf, setInf] = useState(6)
@@ -156,344 +171,385 @@ export default function Calculator() {
   const [mfSip, setMfSip] = useState(10000)
   const [mfLs, setMfLs] = useState(500000)
   const [mfRate, setMfRate] = useState(12)
-  const [tableView, setTableView] = useState<'fd' | 'rd' | 'mf'>('mf')
-  const [showInputs, setShowInputs] = useState(true)
+  const [tView, setTView] = useState<'fd' | 'rd' | 'mf'>('mf')
 
-  const calcFD = useCallback((yrs = years): CalcResult => {
-    const r = fdRate / 100, taxR = inclTax ? tax / 100 : 0, inflR = inclInf ? inf / 100 : 0
+  // calcs
+  const calcFD = useCallback((y = years): Res => {
+    const r = fdRate / 100, tR = inclTax ? tax / 100 : 0, iR = inclInf ? inf / 100 : 0
     let corpus: number, invested: number
-    if (fdType === 'lumpsum') { invested = fdLs; corpus = invested * Math.pow(1 + r, yrs) }
+    if (fdType === 'lumpsum') { invested = fdLs; corpus = invested * Math.pow(1 + r, y) }
     else {
-      const n = yrs * 12; invested = fdMo * n; corpus = 0
+      const n = y * 12; invested = fdMo * n; corpus = 0
       for (let i = 0; i < n; i++) corpus += fdMo * Math.pow(1 + r, (n - i) / 12)
     }
-    const gains = corpus - invested, taxPaid = gains * taxR, postTax = corpus - taxPaid
-    const postTaxRate = fdRate * (1 - taxR)
-    const realReturn = fisher(postTaxRate, inclInf ? inf : 0)
-    const realValue = postTax / Math.pow(1 + inflR, yrs)
-    return { corpus, invested, gains, taxPaid, postTax, realValue, realReturn, postTaxRate, inflationErosion: postTax - realValue, breakEvenInflation: postTaxRate }
+    const gains = corpus - invested, taxPaid = gains * tR, postTax = corpus - taxPaid
+    const postTaxRate = fdRate * (1 - tR)
+    return { corpus, invested, gains, taxPaid, postTax, postTaxRate, breakEvenInflation: postTaxRate,
+      realReturn: fisher(postTaxRate, inclInf ? inf : 0),
+      realValue: postTax / Math.pow(1 + iR, y) }
   }, [fdType, fdLs, fdMo, fdRate, years, tax, inf, inclTax, inclInf])
 
-  const calcRD = useCallback((yrs = years): CalcResult => {
-    const mr = (rdRate / 100) / 12, n = yrs * 12
-    const taxR = inclTax ? tax / 100 : 0, inflR = inclInf ? inf / 100 : 0
+  const calcRD = useCallback((y = years): Res => {
+    const mr = (rdRate / 100) / 12, n = y * 12
+    const tR = inclTax ? tax / 100 : 0, iR = inclInf ? inf / 100 : 0
     let corpus = 0
     for (let i = 1; i <= n; i++) corpus += rdAmt * Math.pow(1 + mr, i)
-    const invested = rdAmt * n, gains = corpus - invested, taxPaid = gains * taxR, postTax = corpus - taxPaid
-    const postTaxRate = rdRate * (1 - taxR)
-    const realReturn = fisher(postTaxRate, inclInf ? inf : 0)
-    const realValue = postTax / Math.pow(1 + inflR, yrs)
-    return { corpus, invested, gains, taxPaid, postTax, realValue, realReturn, postTaxRate, inflationErosion: postTax - realValue }
+    const invested = rdAmt * n, gains = corpus - invested, taxPaid = gains * tR, postTax = corpus - taxPaid
+    const postTaxRate = rdRate * (1 - tR)
+    return { corpus, invested, gains, taxPaid, postTax, postTaxRate,
+      realReturn: fisher(postTaxRate, inclInf ? inf : 0),
+      realValue: postTax / Math.pow(1 + iR, y) }
   }, [rdAmt, rdRate, years, tax, inf, inclTax, inclInf])
 
-  const calcMF = useCallback((yrs = years): CalcResult => {
-    const r = mfRate / 100, inflR = inclInf ? inf / 100 : 0
+  const calcMF = useCallback((y = years): Res => {
+    const r = mfRate / 100, iR = inclInf ? inf / 100 : 0
     let corpus: number, invested: number
     if (mfType === 'sip') {
-      const mr = r / 12, n = yrs * 12
+      const mr = r / 12, n = y * 12
       corpus = mfSip * ((Math.pow(1 + mr, n) - 1) / mr) * (1 + mr); invested = mfSip * n
-    } else { invested = mfLs; corpus = invested * Math.pow(1 + r, yrs) }
-    const gains = corpus - invested
-    const taxableGain = inclTax ? Math.max(0, gains - 125000) : 0
+    } else { invested = mfLs; corpus = invested * Math.pow(1 + r, y) }
+    const gains = corpus - invested, taxableGain = inclTax ? Math.max(0, gains - 125000) : 0
     const taxPaid = taxableGain * 0.125, postTax = corpus - taxPaid
-    const effTax = gains > 0 ? taxPaid / gains : 0
-    const postTaxRate = mfRate * (1 - effTax)
-    const realReturn = fisher(postTaxRate, inclInf ? inf : 0)
-    const realValue = postTax / Math.pow(1 + inflR, yrs)
-    return { corpus, invested, gains, taxPaid, postTax, realValue, realReturn, postTaxRate, inflationErosion: postTax - realValue }
+    const effTax = gains > 0 ? taxPaid / gains : 0, postTaxRate = mfRate * (1 - effTax)
+    return { corpus, invested, gains, taxPaid, postTax, postTaxRate,
+      realReturn: fisher(postTaxRate, inclInf ? inf : 0),
+      realValue: postTax / Math.pow(1 + iR, y) }
   }, [mfType, mfSip, mfLs, mfRate, years, tax, inf, inclTax, inclInf])
 
   const fd = calcFD(), rd = calcRD(), mf = calcMF()
 
-  const scores = [
-    { id: 'fd', name: fdType === 'lumpsum' ? 'FD' : 'FD Monthly', rr: fd.realReturn, color: '#3b82f6', label: fdType === 'lumpsum' ? 'Fixed Deposit' : 'FD (Monthly)' },
-    { id: 'rd', name: 'RD', rr: rd.realReturn, color: '#8b5cf6', label: 'Recurring Deposit' },
-    { id: 'mf', name: mfType === 'sip' ? 'SIP' : 'MF', rr: mf.realReturn, color: '#1a6b3c', label: mfType === 'sip' ? 'Mutual Funds (SIP)' : 'Mutual Funds' },
+  const items = [
+    { id: 'fd', name: fdType === 'lumpsum' ? 'FD' : 'FD Monthly', rr: fd.realReturn, col: '#3b82f6', lbl: fdType === 'lumpsum' ? 'Fixed Deposit' : 'FD (Monthly)', d: fd },
+    { id: 'rd', name: 'RD', rr: rd.realReturn, col: '#8b5cf6', lbl: 'Recurring Deposit', d: rd },
+    { id: 'mf', name: mfType === 'sip' ? 'SIP' : 'MF', rr: mf.realReturn, col: '#1a6b3c', lbl: mfType === 'sip' ? 'Mutual Funds (SIP)' : 'Mutual Funds', d: mf },
   ].sort((a, b) => b.rr - a.rr)
-  const winner = scores[0]
+  const winner = items[0]
 
-  let breakEven: number | null = null
-  for (let y = 1; y <= 40; y++) {
-    if (calcMF(y).realValue > calcFD(y).realValue) { breakEven = y; break }
-  }
+  let be: number | null = null
+  for (let y = 1; y <= 40; y++) { if (calcMF(y).realValue > calcFD(y).realValue) { be = y; break } }
 
-  const tableRows = Array.from({ length: years }, (_, i) => {
+  const rows = Array.from({ length: years }, (_, i) => {
     const y = i + 1
-    const d = tableView === 'fd' ? calcFD(y) : tableView === 'rd' ? calcRD(y) : calcMF(y)
+    const d = tView === 'fd' ? calcFD(y) : tView === 'rd' ? calcRD(y) : calcMF(y)
     return { y, ...d }
   })
-
-  const maxNom = Math.max(fd.corpus, rd.corpus, mf.corpus)
+  const maxN = Math.max(fd.corpus, rd.corpus, mf.corpus)
 
   const insights = [
-    mf.realReturn > 2 && { icon: '🚀', text: `SIP at ${mfRate}% CAGR delivers <strong>${fmtP(mf.realReturn)}/yr</strong> real return — genuine purchasing power growth every year.` },
-    fd.realReturn < 0 && { icon: '⚠️', text: `FD is losing purchasing power at <strong>${fmtP(fd.realReturn)}/yr</strong>. Bank balance grows but each rupee buys less.` },
-    fd.realReturn >= 0 && fd.realReturn < 1.5 && { icon: '😐', text: `FD real return is just <strong>${fmtP(fd.realReturn)}/yr</strong> — ${(mf.realReturn - fd.realReturn).toFixed(1)}pp below SIP. That gap compounds significantly over ${years} years.` },
-    breakEven !== null && years >= breakEven && { icon: '✅', text: `SIP overtook FD at <strong>Year ${breakEven}</strong>. You're ${years - breakEven} years past the crossover — <strong>${fmt(mf.realValue - fd.realValue)}</strong> more real wealth.` },
-    breakEven !== null && years < breakEven && { icon: '⏱️', text: `SIP overtakes FD at <strong>Year ${breakEven}</strong>. Just ${breakEven - years} more year${breakEven - years > 1 ? 's' : ''} to the crossover — stay invested.` },
-    inclTax && { icon: '🧾', text: `Tax takes <strong>${fd.gains > 0 ? (fd.taxPaid / fd.gains * 100).toFixed(0) : 0}%</strong> of FD gains vs only <strong>${mf.gains > 0 ? (mf.taxPaid / mf.gains * 100).toFixed(0) : 0}%</strong> of MF gains. LTCG is far more tax-efficient.` },
-    inclInf && { icon: '📊', text: `At ${inf}% inflation, purchasing power halves every <strong>${(72 / inf).toFixed(0)} years</strong>. Any investment below ${inf}% post-tax is shrinking your real wealth.` },
-    years >= 15 && { icon: '⚡', text: `${years}-year horizon is a major advantage. At ${mfRate}% CAGR, ₹1 becomes <strong>₹${(Math.pow(1 + mfRate / 100, years)).toFixed(1)}</strong> — compounding does the heavy lifting.` },
-    years <= 3 && { icon: '🛡️', text: `Short horizon (${years} years): equity MFs can be volatile. FD and RD offer more predictable returns in this window.` },
-  ].filter(Boolean) as { icon: string; text: string }[]
+    mf.realReturn > 2 && { icon: '🚀', txt: `SIP at ${mfRate}% CAGR delivers <strong>${pct(mf.realReturn)}/yr</strong> real return. Your money genuinely grows in purchasing power.` },
+    fd.realReturn < 0 && { icon: '⚠️', txt: `FD is losing purchasing power at <strong>${pct(fd.realReturn)}/yr</strong>. Your balance grows but each rupee buys less every year.` },
+    fd.realReturn >= 0 && fd.realReturn < 1.5 && { icon: '😐', txt: `FD real return is just <strong>${pct(fd.realReturn)}/yr</strong> — ${(mf.realReturn - fd.realReturn).toFixed(1)} percentage points below SIP. This gap compounds significantly.` },
+    be !== null && years >= be && { icon: '✅', txt: `SIP overtook FD at <strong>Year ${be}</strong>. You're ${years - be} year${years - be !== 1 ? 's' : ''} past the crossover — that's <strong>${fmt(mf.realValue - fd.realValue)}</strong> extra real wealth.` },
+    be !== null && years < be && { icon: '⏱️', txt: `SIP overtakes FD in real terms at <strong>Year ${be}</strong>. Just ${be - years} more year${be - years !== 1 ? 's' : ''} to the crossover.` },
+    inclTax && { icon: '🧾', txt: `FD gives <strong>${fd.gains > 0 ? (fd.taxPaid / fd.gains * 100).toFixed(0) : 0}%</strong> of gains to tax. MF gives only <strong>${mf.gains > 0 ? (mf.taxPaid / mf.gains * 100).toFixed(0) : 0}%</strong> (12.5% LTCG + ₹1.25L exempt). MF is dramatically more tax-efficient.` },
+    inclInf && { icon: '📊', txt: `At ${inf}% inflation, purchasing power halves every <strong>${(72 / inf).toFixed(0)} years</strong>. Any investment below ${inf}% post-tax is eroding your real wealth.` },
+    years >= 15 && { icon: '⚡', txt: `${years}-year horizon is your biggest advantage. At ${mfRate}% CAGR, every ₹1 becomes <strong>₹${(Math.pow(1 + mfRate / 100, years)).toFixed(1)}</strong>. Time in market beats everything.` },
+    years <= 3 && { icon: '🛡️', txt: `For ${years}-year horizons, equity MFs carry volatility risk. FD and RD offer more predictable outcomes in the short term.` },
+  ].filter(Boolean) as { icon: string; txt: string }[]
+
+  // ─ shared input panel content ─
+  const InputsContent = (
+    <div style={{ padding: '16px' }}>
+      <SecLabel col="#f59e0b" txt="General" />
+      <Slider label="Duration" val={years} set={setYears} min={1} max={40} step={1} disp={`${years} yrs`} />
+      <Slider label="Tax Slab" val={tax} set={setTax} min={0} max={42} step={5} disp={`${tax}%`} />
+      <Slider label="Inflation" val={inf} set={setInf} min={3} max={12} step={0.5} disp={`${inf}%`} />
+
+      <SecLabel col="#3b82f6" txt="Fixed Deposit" />
+      <Seg opts={[{ v: 'lumpsum', l: 'Lump Sum' }, { v: 'monthly', l: 'Monthly' }]} val={fdType} set={v => setFdType(v as any)} col="#3b82f6" />
+      {fdType === 'lumpsum'
+        ? <Slider label="Amount" val={fdLs} set={setFdLs} min={10000} max={5000000} step={10000} disp={fmt(fdLs)} />
+        : <Slider label="Monthly Deposit" val={fdMo} set={setFdMo} min={500} max={200000} step={500} disp={`${fmt(fdMo)}/mo`} />}
+      <Slider label="Interest Rate" val={fdRate} set={setFdRate} min={4} max={10} step={0.25} disp={`${fdRate}%`} />
+
+      <SecLabel col="#8b5cf6" txt="Recurring Deposit" />
+      <Slider label="Monthly Amount" val={rdAmt} set={setRdAmt} min={500} max={200000} step={500} disp={`${fmt(rdAmt)}/mo`} />
+      <Slider label="Interest Rate" val={rdRate} set={setRdRate} min={4} max={9} step={0.25} disp={`${rdRate}%`} />
+
+      <SecLabel col="#1a6b3c" txt="Mutual Funds" />
+      <Seg opts={[{ v: 'sip', l: 'SIP Monthly' }, { v: 'lumpsum', l: 'Lump Sum' }]} val={mfType} set={v => setMfType(v as any)} col="#1a6b3c" />
+      {mfType === 'sip'
+        ? <Slider label="Monthly SIP" val={mfSip} set={setMfSip} min={500} max={200000} step={500} disp={`${fmt(mfSip)}/mo`} />
+        : <Slider label="Amount" val={mfLs} set={setMfLs} min={10000} max={5000000} step={10000} disp={fmt(mfLs)} />}
+      <Slider label="Expected CAGR" val={mfRate} set={setMfRate} min={6} max={18} step={0.5} disp={`${mfRate}%`} note="Nifty 50 long-run average: ~12% CAGR" />
+    </div>
+  )
+
+  // ─ results content ─
+  const ResultsContent = (
+    <div>
+      {/* Winner summary strip */}
+      <div style={{ background: '#1a6b3c', borderRadius: '14px', padding: '16px', marginBottom: '14px', color: '#fff' }}>
+        <div style={{ fontSize: '11px', opacity: 0.7, marginBottom: '6px', letterSpacing: '0.8px', textTransform: 'uppercase' }}>Best real return over {years} years</div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <div style={{ fontSize: '28px', fontWeight: 800, fontFamily: 'DM Mono, monospace', letterSpacing: '-1px' }}>{pct(winner.rr)}</div>
+            <div style={{ fontSize: '13px', opacity: 0.85, marginTop: '2px' }}>🏆 {winner.name} wins</div>
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            <div style={{ fontSize: '10px', opacity: 0.7, marginBottom: '2px' }}>Real corpus</div>
+            <div style={{ fontSize: '22px', fontWeight: 700, fontFamily: 'DM Mono, monospace' }}>{fmt(winner.d.realValue)}</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Quick stat pills */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '14px' }}>
+        {[
+          { l: 'Total Invested', v: fmt(fd.invested + rd.invested + mf.invested), c: '#374151' },
+          { l: 'Best Nominal', v: fmt(Math.max(fd.corpus, rd.corpus, mf.corpus)), c: '#374151' },
+          { l: 'Best Real Value', v: fmt(Math.max(fd.realValue, rd.realValue, mf.realValue)), c: '#1a6b3c' },
+          { l: 'Lost to Inflation', v: fmt(Math.max(fd.postTax, rd.postTax, mf.postTax) - Math.max(fd.realValue, rd.realValue, mf.realValue)), c: '#c0392b' },
+        ].map((s, i) => (
+          <div key={i} style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '10px', padding: '12px' }}>
+            <div style={{ fontSize: '10px', color: '#9ca3af', marginBottom: '4px' }}>{s.l}</div>
+            <div style={{ fontSize: '16px', fontWeight: 700, fontFamily: 'DM Mono, monospace', color: s.c }}>{s.v}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Erosion warning */}
+      {fd.realReturn < 0 && inclInf && (
+        <div style={{ background: '#fff5f5', border: '1px solid #fed7d7', borderRadius: '12px', padding: '14px', marginBottom: '14px', display: 'flex', gap: '10px' }}>
+          <span style={{ fontSize: '20px', flexShrink: 0 }}>⚠️</span>
+          <div style={{ fontSize: '13px', color: '#c0392b', lineHeight: 1.6 }}>
+            <strong>Wealth Erosion Alert</strong><br />
+            Your FD delivers {pct(fd.realReturn)}/yr after {tax}% tax &amp; {inf}% inflation. You are losing purchasing power every year.
+          </div>
+        </div>
+      )}
+
+      {/* Cards */}
+      {[
+        { id: 'fd', col: '#3b82f6', lbl: fdType === 'lumpsum' ? 'Fixed Deposit' : 'FD (Monthly)', d: fd },
+        { id: 'rd', col: '#8b5cf6', lbl: 'Recurring Deposit', d: rd },
+        { id: 'mf', col: '#1a6b3c', lbl: mfType === 'sip' ? 'Mutual Funds (SIP)' : 'Mutual Funds', d: mf },
+      ].map(c => (
+        <Card key={c.id} label={c.lbl} col={c.col} d={c.d}
+          winner={winner.id === c.id} inclTax={inclTax} inclInf={inclInf} tax={tax} inf={inf} />
+      ))}
+
+      {/* Bar chart */}
+      <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '14px', padding: '16px', marginBottom: '14px' }}>
+        <div style={{ fontSize: '12px', fontWeight: 700, color: '#374151', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: '4px' }}>Expected vs Reality</div>
+        <div style={{ fontSize: '12px', color: '#9ca3af', marginBottom: '14px' }}>Nominal → Post-Tax → Real</div>
+        {[
+          { l: 'FD', nom: fd.corpus, ptx: fd.postTax, rl: fd.realValue, col: '#3b82f6' },
+          { l: 'RD', nom: rd.corpus, ptx: rd.postTax, rl: rd.realValue, col: '#8b5cf6' },
+          { l: 'MF', nom: mf.corpus, ptx: mf.postTax, rl: mf.realValue, col: '#1a6b3c' },
+        ].map(b => (
+          <div key={b.l} style={{ marginBottom: '14px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
+              <span style={{ fontSize: '12px', fontWeight: 600, color: b.col }}>{b.l}</span>
+              <span style={{ fontSize: '11px', color: b.col, fontFamily: 'DM Mono, monospace', fontWeight: 700 }}>{fmt(b.rl)}</span>
+            </div>
+            {[
+              { val: b.nom, bg: '#e5e7eb', fill: '#9ca3af', lbl: fmt(b.nom) },
+              { val: b.ptx, bg: '#fef3dc', fill: '#f59e0b', lbl: fmt(b.ptx) },
+              { val: b.rl, bg: `${b.col}18`, fill: b.col, lbl: fmt(b.rl) },
+            ].map((bar, i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '3px' }}>
+                <div style={{ flex: 1, height: '10px', background: bar.bg, borderRadius: '999px', overflow: 'hidden' }}>
+                  <div style={{ height: '100%', width: `${Math.max(3, (bar.val / maxN) * 100)}%`, background: bar.fill, borderRadius: '999px', transition: 'width 0.5s' }} />
+                </div>
+                <span style={{ fontSize: '10px', color: bar.fill, fontFamily: 'DM Mono, monospace', width: '60px', flexShrink: 0, textAlign: 'right' }}>{bar.lbl}</span>
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+
+      {/* Year table */}
+      <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '14px', overflow: 'hidden', marginBottom: '14px' }}>
+        <div style={{ padding: '14px 16px', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+          <span style={{ fontSize: '12px', fontWeight: 700, color: '#374151', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Year by Year</span>
+          <div style={{ display: 'flex', gap: '6px' }}>
+            {(['fd', 'rd', 'mf'] as const).map(v => (
+              <button key={v} onClick={() => setTView(v)} style={{
+                fontSize: '11px', padding: '4px 10px', borderRadius: '999px', cursor: 'pointer', fontWeight: 600,
+                background: tView === v ? '#e8f5ee' : '#f9fafb',
+                border: `1px solid ${tView === v ? '#1a6b3c' : '#e5e7eb'}`,
+                color: tView === v ? '#1a6b3c' : '#9ca3af',
+              }}>{v.toUpperCase()}</button>
+            ))}
+          </div>
+        </div>
+        <div style={{ overflowX: 'auto', maxHeight: '260px', overflowY: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '440px', fontSize: '11px' }}>
+            <thead>
+              <tr style={{ background: '#f9fafb', position: 'sticky', top: 0 }}>
+                {['Yr', 'Invested', 'Corpus', 'Tax', 'Post-Tax', 'Real', 'Gain'].map(h => (
+                  <th key={h} style={{ padding: '8px 10px', textAlign: h === 'Yr' ? 'left' : 'right', color: '#9ca3af', fontWeight: 600, fontSize: '10px', textTransform: 'uppercase', borderBottom: '1px solid #e5e7eb', whiteSpace: 'nowrap' }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map(r => {
+                const g = r.realValue - r.invested
+                return (
+                  <tr key={r.y} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                    <td style={{ padding: '7px 10px', fontWeight: 600, color: '#6b7280' }}>{r.y}</td>
+                    <td style={{ padding: '7px 10px', textAlign: 'right', fontFamily: 'DM Mono, monospace', color: '#6b7280' }}>{fmt(r.invested)}</td>
+                    <td style={{ padding: '7px 10px', textAlign: 'right', fontFamily: 'DM Mono, monospace', color: '#6b7280' }}>{fmt(r.corpus)}</td>
+                    <td style={{ padding: '7px 10px', textAlign: 'right', fontFamily: 'DM Mono, monospace', color: '#e53e3e' }}>{fmt(r.taxPaid)}</td>
+                    <td style={{ padding: '7px 10px', textAlign: 'right', fontFamily: 'DM Mono, monospace', color: '#d97706' }}>{fmt(r.postTax)}</td>
+                    <td style={{ padding: '7px 10px', textAlign: 'right', fontFamily: 'DM Mono, monospace', color: '#1a6b3c', fontWeight: 700 }}>{fmt(r.realValue)}</td>
+                    <td style={{ padding: '7px 10px', textAlign: 'right', fontFamily: 'DM Mono, monospace', color: g >= 0 ? '#1a6b3c' : '#e53e3e', fontWeight: 700 }}>{g >= 0 ? '+' : ''}{fmt(g)}</td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  )
+
+  // ─ insights content ─
+  const InsightsContent = (
+    <div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '16px' }}>
+        {insights.map((ins, i) => (
+          <div key={i} style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '14px', display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+            <span style={{ fontSize: '20px', flexShrink: 0 }}>{ins.icon}</span>
+            <p style={{ fontSize: '13px', color: '#4b5563', lineHeight: 1.7, margin: 0 }} dangerouslySetInnerHTML={{ __html: ins.txt }} />
+          </div>
+        ))}
+      </div>
+      <p style={{ fontSize: '11px', color: '#d1d5db', lineHeight: 1.7, textAlign: 'center' }}>
+        Fisher Equation used for real returns. FD/RD taxed at income slab. MF: 12.5% LTCG + ₹1.25L exemption (Budget 2024). Not investment advice. Consult a SEBI-registered advisor.
+      </p>
+    </div>
+  )
 
   return (
-    <div style={{ background: '#f7f8fa', minHeight: '100vh' }}>
+    <div style={{ background: '#f3f4f6', minHeight: '100vh' }}>
 
+      {/* ── Global styles ── */}
       <style>{`
+        /* Desktop: 2-col layout, no tabs */
         @media (min-width: 768px) {
-          .calc-inputs { max-height: 3000px !important; opacity: 1 !important; overflow: visible !important; }
-          .calc-layout { grid-template-columns: 300px 1fr !important; }
-          .calc-cards { grid-template-columns: repeat(3, 1fr) !important; }
-          .calc-banner { grid-template-columns: repeat(4, 1fr) !important; }
-          .mobile-only { display: none !important; }
+          .mob-tabs { display: none !important; }
+          .mob-content { display: block !important; }
+          .desk-layout { display: grid !important; grid-template-columns: 320px 1fr; gap: 20px; align-items: start; }
+          .desk-sidebar { display: block !important; position: sticky; top: 60px; background: #fff; border: 1px solid #e5e7eb; border-radius: 16px; overflow-y: auto; max-height: calc(100vh - 80px); }
+          .desk-results { display: block !important; }
         }
         @media (max-width: 767px) {
-          .calc-layout { grid-template-columns: 1fr !important; }
-          .calc-cards { grid-template-columns: 1fr !important; }
-          .calc-banner { grid-template-columns: repeat(2, 1fr) !important; }
+          .desk-layout { display: block !important; }
+          .desk-sidebar { display: none; }
+          .desk-results { display: none; }
+          .mob-content[data-active='true'] { display: block !important; }
+          .mob-content { display: none; }
         }
       `}</style>
 
-      {/* NAV */}
-      <nav style={{ background: '#fff', borderBottom: '1px solid #e8ecf0', padding: '0 16px', height: '52px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 200 }}>
+      {/* ── NAV ── */}
+      <nav style={{
+        background: '#fff', borderBottom: '1px solid #e5e7eb',
+        height: '52px', padding: '0 16px',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        position: 'sticky', top: 0, zIndex: 300,
+      }}>
         <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <div style={{ width: '28px', height: '28px', background: '#1a6b3c', borderRadius: '7px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px' }}>📊</div>
-          <span style={{ fontSize: '14px', fontWeight: 700, color: '#0f1923' }}>real<span style={{ color: '#1a6b3c' }}>return</span>.in</span>
+          <span style={{ fontSize: '15px', fontWeight: 700, color: '#111827' }}>real<span style={{ color: '#1a6b3c' }}>return</span>.in</span>
         </Link>
         <div style={{ display: 'flex', gap: '6px' }}>
-          {[{ k: 'tax', label: 'Tax', val: inclTax }, { k: 'inf', label: 'Inflation', val: inclInf }].map(t => (
+          {[{ k: 'tax', l: 'Tax', v: inclTax }, { k: 'inf', l: 'Inflation', v: inclInf }].map(t => (
             <button key={t.k}
               onClick={() => t.k === 'tax' ? setInclTax(!inclTax) : setInclInf(!inclInf)}
               style={{
                 display: 'flex', alignItems: 'center', gap: '5px',
-                background: t.val ? '#e8f5ee' : '#f7f8fa',
-                border: `1px solid ${t.val ? '#1a6b3c' : '#e8ecf0'}`,
-                color: t.val ? '#1a6b3c' : '#8896a8',
+                background: t.v ? '#e8f5ee' : '#f9fafb',
+                border: `1px solid ${t.v ? '#1a6b3c' : '#e5e7eb'}`,
+                color: t.v ? '#1a6b3c' : '#9ca3af',
                 borderRadius: '999px', padding: '5px 10px',
-                fontSize: '11px', fontWeight: 600, cursor: 'pointer',
+                fontSize: '12px', fontWeight: 600, cursor: 'pointer',
               }}>
-              <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: t.val ? '#1a6b3c' : '#c0ccd8', display: 'inline-block' }} />
-              {t.label}
+              <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: t.v ? '#1a6b3c' : '#d1d5db', display: 'inline-block' }} />
+              {t.l}
             </button>
           ))}
         </div>
       </nav>
 
-      {/* PAGE TITLE */}
-      <div style={{ background: '#fff', borderBottom: '1px solid #e8ecf0', padding: '14px 16px' }}>
-        <h1 style={{ fontSize: '18px', fontWeight: 700, color: '#0f1923', letterSpacing: '-0.3px' }}>Financial Reality Engine</h1>
-        <p style={{ fontSize: '12px', color: '#4a5568', marginTop: '2px' }}>FD vs RD vs Mutual Funds — real returns after tax &amp; inflation</p>
+      {/* ── MOBILE TABS ── */}
+      <div className="mob-tabs" style={{ background: '#fff', borderBottom: '1px solid #e5e7eb', padding: '0 16px', position: 'sticky', top: '52px', zIndex: 200 }}>
+        <div style={{ display: 'flex', gap: '0' }}>
+          {[
+            { k: 'inputs', l: '⚙️ Inputs' },
+            { k: 'results', l: '📊 Results' },
+            { k: 'insights', l: '💡 Insights' },
+          ].map(t => (
+            <button key={t.k}
+              onClick={() => setTab(t.k as any)}
+              style={{
+                flex: 1, padding: '12px 4px', fontSize: '13px', fontWeight: 600,
+                background: 'transparent', border: 'none', cursor: 'pointer',
+                color: tab === t.k ? '#1a6b3c' : '#9ca3af',
+                borderBottom: tab === t.k ? '2px solid #1a6b3c' : '2px solid transparent',
+                transition: 'all 0.15s',
+              }}>
+              {t.l}
+            </button>
+          ))}
+        </div>
       </div>
 
-      {/* MOBILE INPUTS TOGGLE */}
-      <div className="mobile-only" style={{ padding: '10px 16px', background: '#fff', borderBottom: '1px solid #e8ecf0' }}>
-        <button
-          onClick={() => setShowInputs(!showInputs)}
-          style={{
-            width: '100%', padding: '10px 16px',
-            background: showInputs ? '#1a6b3c' : '#f7f8fa',
-            border: `1px solid ${showInputs ? '#1a6b3c' : '#e8ecf0'}`,
-            borderRadius: '8px', color: showInputs ? '#fff' : '#0f1923',
-            fontSize: '13px', fontWeight: 600, cursor: 'pointer',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
-          }}>
-          ⚙️ {showInputs ? 'Hide Settings ▲' : 'Show Settings ▼'}
-        </button>
-      </div>
-
-      {/* MAIN LAYOUT */}
+      {/* ── MAIN ── */}
       <div style={{ maxWidth: '1300px', margin: '0 auto', padding: '16px' }}>
-        <div className="calc-layout" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '16px', alignItems: 'start' }}>
+        <div className="desk-layout">
 
-          {/* INPUTS PANEL */}
-          <div className="calc-inputs" style={{
-            background: '#fff', border: '1px solid #e8ecf0',
-            borderRadius: '12px', overflow: 'hidden',
-            position: 'sticky', top: '62px',
-            maxHeight: showInputs ? '3000px' : '0px',
-            opacity: showInputs ? 1 : 0,
-            transition: 'max-height 0.3s ease, opacity 0.2s ease',
-          }}>
-            <div style={{ padding: '12px 16px', borderBottom: '1px solid #e8ecf0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '1px', color: '#8896a8' }}>Configure</span>
-              <span style={{ fontSize: '10px', background: '#e8f5ee', color: '#1a6b3c', padding: '2px 8px', borderRadius: '999px' }}>● Live</span>
+          {/* Desktop sidebar */}
+          <div className="desk-sidebar">
+            <div style={{ padding: '12px 16px', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px', color: '#9ca3af' }}>Configure</span>
+              <span style={{ fontSize: '10px', background: '#e8f5ee', color: '#1a6b3c', padding: '2px 8px', borderRadius: '999px', fontWeight: 600 }}>● Live</span>
             </div>
-            <div style={{ padding: '16px' }}>
-              <SectionLabel color="#f59e0b" label="General" />
-              <SliderRow label="Duration" val={years} set={setYears} min={1} max={40} step={1} display={`${years} yrs`} />
-              <SliderRow label="Tax Slab" val={tax} set={setTax} min={0} max={42} step={5} display={`${tax}%`} />
-              <SliderRow label="Inflation" val={inf} set={setInf} min={3} max={12} step={0.5} display={`${inf}%`} />
+            {InputsContent}
+          </div>
 
-              <SectionLabel color="#3b82f6" label="Fixed Deposit" />
-              <SegToggle options={[{ val: 'lumpsum', label: 'Lump Sum' }, { val: 'monthly', label: 'Monthly' }]} value={fdType} onChange={v => setFdType(v as any)} color="#3b82f6" />
-              {fdType === 'lumpsum'
-                ? <SliderRow label="Amount" val={fdLs} set={setFdLs} min={10000} max={5000000} step={10000} display={fmt(fdLs)} />
-                : <SliderRow label="Monthly" val={fdMo} set={setFdMo} min={500} max={200000} step={500} display={`${fmt(fdMo)}/mo`} />}
-              <SliderRow label="Interest Rate" val={fdRate} set={setFdRate} min={4} max={10} step={0.25} display={`${fdRate}%`} />
+          {/* Desktop results */}
+          <div className="desk-results">
+            {ResultsContent}
+            {InsightsContent}
+          </div>
 
-              <SectionLabel color="#8b5cf6" label="Recurring Deposit" />
-              <SliderRow label="Monthly" val={rdAmt} set={setRdAmt} min={500} max={200000} step={500} display={`${fmt(rdAmt)}/mo`} />
-              <SliderRow label="Interest Rate" val={rdRate} set={setRdRate} min={4} max={9} step={0.25} display={`${rdRate}%`} />
-
-              <SectionLabel color="#1a6b3c" label="Mutual Funds" />
-              <SegToggle options={[{ val: 'sip', label: 'SIP Monthly' }, { val: 'lumpsum', label: 'Lump Sum' }]} value={mfType} onChange={v => setMfType(v as any)} color="#1a6b3c" />
-              {mfType === 'sip'
-                ? <SliderRow label="Monthly SIP" val={mfSip} set={setMfSip} min={500} max={200000} step={500} display={`${fmt(mfSip)}/mo`} />
-                : <SliderRow label="Amount" val={mfLs} set={setMfLs} min={10000} max={5000000} step={10000} display={fmt(mfLs)} />}
-              <SliderRow label="Expected CAGR" val={mfRate} set={setMfRate} min={6} max={18} step={0.5} display={`${mfRate}%`} note="Nifty 50 historical: ~12% CAGR" />
+          {/* Mobile: show active tab content */}
+          <div className="mob-content" data-active={tab === 'inputs' ? 'true' : 'false'}>
+            <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '16px', overflow: 'hidden', marginTop: '4px' }}>
+              <div style={{ padding: '10px 16px', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px', color: '#9ca3af' }}>Configure</span>
+                <span style={{ fontSize: '10px', background: '#e8f5ee', color: '#1a6b3c', padding: '2px 8px', borderRadius: '999px', fontWeight: 600 }}>● Live</span>
+              </div>
+              {InputsContent}
+            </div>
+            {/* After inputs on mobile — show winner summary */}
+            <div style={{ marginTop: '12px', background: '#1a6b3c', borderRadius: '14px', padding: '14px 16px', color: '#fff', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <div style={{ fontSize: '11px', opacity: 0.7, marginBottom: '4px' }}>Best real return</div>
+                <div style={{ fontSize: '24px', fontWeight: 800, fontFamily: 'DM Mono, monospace' }}>{pct(winner.rr)}/yr</div>
+                <div style={{ fontSize: '12px', opacity: 0.85, marginTop: '2px' }}>🏆 {winner.name} wins</div>
+              </div>
+              <button onClick={() => setTab('results')} style={{
+                background: 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.3)',
+                color: '#fff', borderRadius: '10px', padding: '10px 14px',
+                fontSize: '12px', fontWeight: 700, cursor: 'pointer',
+              }}>
+                See Results →
+              </button>
             </div>
           </div>
 
-          {/* RESULTS */}
-          <div>
-
-            {/* REALITY BANNER */}
-            <div className="calc-banner" style={{
-              background: '#fff', border: '1px solid #e8ecf0', borderRadius: '12px',
-              padding: '14px 16px', marginBottom: '14px',
-              display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px',
-            }}>
-              {[
-                { val: fmt(fd.invested + rd.invested + mf.invested), label: 'Total Invested', color: '#0f1923' },
-                { val: fmt(Math.max(fd.corpus, rd.corpus, mf.corpus)), label: 'Best Nominal', color: '#0f1923' },
-                { val: fmt(Math.max(fd.realValue, rd.realValue, mf.realValue)), label: 'Best Real Value', color: '#1a6b3c' },
-                { val: fmt(Math.max(fd.postTax, rd.postTax, mf.postTax) - Math.max(fd.realValue, rd.realValue, mf.realValue)), label: 'Lost to Inflation', color: '#c0392b' },
-              ].map((item, i) => (
-                <div key={i} style={{ textAlign: 'center', padding: '4px 0' }}>
-                  <div style={{ fontSize: '16px', fontWeight: 700, fontFamily: 'DM Mono, monospace', color: item.color }}>{item.val}</div>
-                  <div style={{ fontSize: '10px', color: '#8896a8', marginTop: '2px' }}>{item.label}</div>
-                </div>
-              ))}
-              <div style={{ gridColumn: '1 / -1', textAlign: 'center', paddingTop: '8px', borderTop: '1px solid #e8ecf0' }}>
-                <div style={{ display: 'inline-block', background: '#e8f5ee', border: '1px solid #1a6b3c', color: '#1a6b3c', borderRadius: '999px', padding: '5px 14px', fontSize: '12px', fontWeight: 600 }}>
-                  🏆 {winner.name} wins · {fmtP(winner.rr)} real/yr
-                </div>
-              </div>
-            </div>
-
-            {/* EROSION WARNING */}
-            {fd.realReturn < 0 && inclInf && (
-              <div style={{ background: '#fdecea', border: '1px solid #fca5a5', borderRadius: '10px', padding: '12px 14px', display: 'flex', gap: '10px', alignItems: 'flex-start', marginBottom: '14px', fontSize: '13px', color: '#c0392b', lineHeight: 1.5 }}>
-                <span style={{ fontSize: '18px', flexShrink: 0 }}>⚠️</span>
-                <div><strong>Wealth Erosion Alert:</strong> Your FD delivers {fmtP(fd.realReturn)}/yr after {tax}% tax and {inf}% inflation. You are losing purchasing power.</div>
-              </div>
-            )}
-
-            {/* 3 CARDS — 1 col mobile, 3 col desktop */}
-            <div className="calc-cards" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '12px', marginBottom: '14px' }}>
-              {[
-                { id: 'fd', data: fd, color: '#3b82f6', label: fdType === 'lumpsum' ? 'Fixed Deposit' : 'FD (Monthly)' },
-                { id: 'rd', data: rd, color: '#8b5cf6', label: 'Recurring Deposit' },
-                { id: 'mf', data: mf, color: '#1a6b3c', label: mfType === 'sip' ? 'Mutual Funds (SIP)' : 'Mutual Funds' },
-              ].map(card => (
-                <ResultCard key={card.id} label={card.label} color={card.color} data={card.data}
-                  isWinner={winner.id === card.id} inclTax={inclTax} inclInf={inclInf} tax={tax} inf={inf} />
-              ))}
-            </div>
-
-            {/* BAR CHART */}
-            <div style={{ background: '#fff', border: '1px solid #e8ecf0', borderRadius: '12px', padding: '16px', marginBottom: '14px' }}>
-              <div style={{ fontSize: '11px', fontWeight: 600, color: '#4a5568', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px' }}>Expected vs Reality</div>
-              <div style={{ fontSize: '11px', color: '#8896a8', marginBottom: '12px' }}>What you see vs what your money is worth</div>
-              <div style={{ display: 'flex', gap: '10px', marginBottom: '14px', flexWrap: 'wrap' }}>
-                {[['#9ca3af', 'Nominal'], ['#f59e0b', 'Post-Tax'], ['#1a6b3c', 'Real Value']].map(([c, l]) => (
-                  <div key={l} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', color: '#4a5568' }}>
-                    <span style={{ width: '8px', height: '8px', borderRadius: '2px', background: c as string, display: 'inline-block' }} />{l}
-                  </div>
-                ))}
-              </div>
-              {[
-                { label: 'Fixed Deposit', nom: fd.corpus, postTaxV: fd.postTax, real: fd.realValue, color: '#3b82f6' },
-                { label: 'Rec. Deposit', nom: rd.corpus, postTaxV: rd.postTax, real: rd.realValue, color: '#8b5cf6' },
-                { label: 'Mutual Funds', nom: mf.corpus, postTaxV: mf.postTax, real: mf.realValue, color: '#1a6b3c' },
-              ].map(bar => (
-                <div key={bar.label} style={{ marginBottom: '14px' }}>
-                  <div style={{ fontSize: '11px', color: '#4a5568', marginBottom: '5px', fontWeight: 500 }}>{bar.label}</div>
-                  <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                    <div style={{ flex: 1 }}>
-                      {[
-                        { val: bar.nom, bg: '#e5e7eb', fill: '#9ca3af' },
-                        { val: bar.postTaxV, bg: '#fef3dc', fill: '#f59e0b' },
-                        { val: bar.real, bg: `${bar.color}15`, fill: bar.color },
-                      ].map((b, i) => (
-                        <div key={i} style={{ height: '8px', background: b.bg, borderRadius: '999px', overflow: 'hidden', marginBottom: '3px' }}>
-                          <div style={{ height: '100%', width: `${Math.max(2, (b.val / maxNom) * 100)}%`, background: b.fill, borderRadius: '999px', transition: 'width 0.5s ease' }} />
-                        </div>
-                      ))}
-                    </div>
-                    <div style={{ width: '70px', flexShrink: 0 }}>
-                      <div style={{ fontSize: '10px', color: '#9ca3af', fontFamily: 'DM Mono, monospace' }}>{fmt(bar.nom)}</div>
-                      <div style={{ fontSize: '10px', color: '#f59e0b', fontFamily: 'DM Mono, monospace' }}>{fmt(bar.postTaxV)}</div>
-                      <div style={{ fontSize: '10px', color: bar.color, fontFamily: 'DM Mono, monospace', fontWeight: 600 }}>{fmt(bar.real)}</div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* YEAR TABLE */}
-            <div style={{ background: '#fff', border: '1px solid #e8ecf0', borderRadius: '12px', overflow: 'hidden', marginBottom: '14px' }}>
-              <div style={{ padding: '12px 16px', borderBottom: '1px solid #e8ecf0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
-                <div style={{ fontSize: '11px', fontWeight: 600, color: '#4a5568', textTransform: 'uppercase', letterSpacing: '1px' }}>Year-by-Year</div>
-                <div style={{ display: 'flex', gap: '6px' }}>
-                  {(['fd', 'rd', 'mf'] as const).map(v => (
-                    <button key={v} onClick={() => setTableView(v)} style={{
-                      fontSize: '11px', padding: '3px 10px', borderRadius: '999px',
-                      background: tableView === v ? '#e8f5ee' : '#f7f8fa',
-                      border: `1px solid ${tableView === v ? '#1a6b3c' : '#e8ecf0'}`,
-                      color: tableView === v ? '#1a6b3c' : '#8896a8',
-                      fontWeight: tableView === v ? 600 : 400, cursor: 'pointer',
-                    }}>{v.toUpperCase()}</button>
-                  ))}
-                </div>
-              </div>
-              <div style={{ overflowX: 'auto', overflowY: 'auto', maxHeight: '280px' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px', minWidth: '480px' }}>
-                  <thead>
-                    <tr style={{ background: '#f7f8fa', position: 'sticky', top: 0 }}>
-                      {['Year', 'Invested', 'Gross', 'Tax', 'Post-Tax', 'Real Value', 'Real Gain'].map(h => (
-                        <th key={h} style={{ padding: '7px 10px', textAlign: h === 'Year' ? 'left' : 'right', color: '#8896a8', fontWeight: 500, fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: '1px solid #e8ecf0', whiteSpace: 'nowrap' }}>{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {tableRows.map(row => {
-                      const rg = row.realValue - row.invested
-                      return (
-                        <tr key={row.y} style={{ borderBottom: '1px solid #f0f2f4' }}>
-                          <td style={{ padding: '6px 10px', color: '#4a5568', fontWeight: 500 }}>Y{row.y}</td>
-                          <td style={{ padding: '6px 10px', textAlign: 'right', fontFamily: 'DM Mono, monospace', color: '#4a5568' }}>{fmt(row.invested)}</td>
-                          <td style={{ padding: '6px 10px', textAlign: 'right', fontFamily: 'DM Mono, monospace', color: '#4a5568' }}>{fmt(row.corpus)}</td>
-                          <td style={{ padding: '6px 10px', textAlign: 'right', fontFamily: 'DM Mono, monospace', color: '#c0392b' }}>{fmt(row.taxPaid)}</td>
-                          <td style={{ padding: '6px 10px', textAlign: 'right', fontFamily: 'DM Mono, monospace', color: '#d4860a' }}>{fmt(row.postTax)}</td>
-                          <td style={{ padding: '6px 10px', textAlign: 'right', fontFamily: 'DM Mono, monospace', color: '#1a6b3c', fontWeight: 600 }}>{fmt(row.realValue)}</td>
-                          <td style={{ padding: '6px 10px', textAlign: 'right', fontFamily: 'DM Mono, monospace', color: rg >= 0 ? '#1a6b3c' : '#c0392b', fontWeight: 600 }}>{rg >= 0 ? '+' : ''}{fmt(rg)}</td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            {/* INSIGHTS */}
-            <div style={{ background: '#fff', border: '1px solid #e8ecf0', borderRadius: '12px', padding: '16px' }}>
-              <div style={{ fontSize: '12px', fontWeight: 600, color: '#4a5568', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '12px' }}>💡 Smart Insights</div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                {insights.map((ins, i) => (
-                  <div key={i} style={{ background: '#f7f8fa', border: '1px solid #e8ecf0', borderRadius: '8px', padding: '12px', display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
-                    <span style={{ fontSize: '16px', flexShrink: 0 }}>{ins.icon}</span>
-                    <span style={{ fontSize: '12px', color: '#4a5568', lineHeight: 1.6 }} dangerouslySetInnerHTML={{ __html: ins.text }} />
-                  </div>
-                ))}
-              </div>
-              <div style={{ marginTop: '14px', fontSize: '11px', color: '#b0bac8', lineHeight: 1.6 }}>
-                Fisher Equation used for real returns. FD/RD taxed at slab rate. MF: 12.5% LTCG with ₹1.25L exemption (Budget 2024). Not investment advice. Consult a SEBI-registered advisor.
-              </div>
-            </div>
-
+          <div className="mob-content" data-active={tab === 'results' ? 'true' : 'false'} style={{ marginTop: '4px' }}>
+            {ResultsContent}
           </div>
+
+          <div className="mob-content" data-active={tab === 'insights' ? 'true' : 'false'} style={{ marginTop: '4px' }}>
+            {InsightsContent}
+          </div>
+
         </div>
       </div>
     </div>
