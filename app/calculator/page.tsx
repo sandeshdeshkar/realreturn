@@ -157,7 +157,7 @@ export default function Calculator() {
   const [mfLs, setMfLs] = useState(500000)
   const [mfRate, setMfRate] = useState(12)
   const [tableView, setTableView] = useState<'fd' | 'rd' | 'mf'>('mf')
-  const [showInputs, setShowInputs] = useState(false)
+  const [showInputs, setShowInputs] = useState(true)
 
   const calcFD = useCallback((yrs = years): CalcResult => {
     const r = fdRate / 100, taxR = inclTax ? tax / 100 : 0, inflR = inclInf ? inf / 100 : 0
@@ -245,7 +245,7 @@ export default function Calculator() {
           .calc-inputs { max-height: 3000px !important; opacity: 1 !important; overflow: visible !important; }
           .calc-layout { grid-template-columns: 300px 1fr !important; }
           .calc-cards { grid-template-columns: repeat(3, 1fr) !important; }
-          .calc-banner { grid-template-columns: repeat(5, 1fr) !important; }
+          .calc-banner { grid-template-columns: repeat(4, 1fr) !important; }
           .mobile-only { display: none !important; }
         }
         @media (max-width: 767px) {
@@ -298,7 +298,7 @@ export default function Calculator() {
             fontSize: '13px', fontWeight: 600, cursor: 'pointer',
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
           }}>
-          ⚙️ {showInputs ? 'Hide Settings ▲' : 'Adjust Inputs ▼'}
+          ⚙️ {showInputs ? 'Hide Settings ▲' : 'Show Settings ▼'}
         </button>
       </div>
 
