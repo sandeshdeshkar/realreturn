@@ -11,7 +11,19 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 1.0,
     },
     {
-      url: `${baseUrl}/calculator`,
+      url: `${baseUrl}/fd-vs-rd-vs-mf-returns-calculator`,
+      lastModified: new Date(),
+      changeFrequency: 'weekly',
+      priority: 0.9,
+    },
+    {
+      url: `${baseUrl}/personal-financial-planner`,
+      lastModified: new Date(),
+      changeFrequency: 'weekly',
+      priority: 0.9,
+    },
+    {
+      url: `${baseUrl}/retirement-corpus-calculator`,
       lastModified: new Date(),
       changeFrequency: 'weekly',
       priority: 0.9,

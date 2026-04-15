@@ -21,7 +21,7 @@ function Nav() {
           <div style={{ fontSize: '10px', color: '#8896a8', lineHeight: 1 }}>Real returns after tax &amp; inflation</div>
         </div>
       </Link>
-      <Link href="/calculator" style={{ background: '#1a6b3c', color: '#fff', fontSize: '12px', fontWeight: 600, padding: '7px 14px', borderRadius: '8px', whiteSpace: 'nowrap' }}>
+      <Link href="/fd-vs-rd-vs-mf-returns-calculator" style={{ background: '#1a6b3c', color: '#fff', fontSize: '12px', fontWeight: 600, padding: '7px 14px', borderRadius: '8px', whiteSpace: 'nowrap' }}>
         Calculator →
       </Link>
     </nav>
@@ -70,7 +70,7 @@ function HookWidget() {
             : '✅ Your FD is building real wealth — but compare with SIP to see how much more you could earn.'}
         </div>
       </div>
-      <Link href="/calculator" style={{ display: 'block', textAlign: 'center', background: '#1a6b3c', color: '#fff', padding: '13px', borderRadius: '10px', fontSize: '14px', fontWeight: 600, marginTop: '14px' }}>
+      <Link href="/fd-vs-rd-vs-mf-returns-calculator" style={{ display: 'block', textAlign: 'center', background: '#1a6b3c', color: '#fff', padding: '13px', borderRadius: '10px', fontSize: '14px', fontWeight: 600, marginTop: '14px' }}>
         Compare FD vs RD vs Mutual Funds →
       </Link>
     </div>
@@ -83,21 +83,21 @@ export default function Home() {
   const tools = [
     {
       icon: '⚖️',
-      title: 'FD vs RD vs Mutual Funds',
-      desc: 'Compare all three after tax and inflation. See nominal corpus, post-tax corpus, and real inflation-adjusted value in one view.',
-      tag: 'Live now', tagGreen: true, href: '/calculator', cta: 'Open Calculator →',
+      title: 'FD vs RD vs MF Returns Calculator',
+      desc: 'Compare Fixed Deposit, Recurring Deposit and Mutual Funds after tax and inflation. See what each actually earns in real terms.',
+      tag: 'Live now', tagGreen: true, href: '/fd-vs-rd-vs-mf-returns-calculator', cta: 'Open Calculator →',
     },
     {
       icon: '🎯',
-      title: 'Goal Planner',
-      desc: 'I want ₹1 Crore in 10 years — how much SIP do I need? Inflation-adjusted target, real returns applied.',
-      tag: 'Coming soon', tagGreen: false, href: '#', cta: 'Coming soon',
+      title: 'Get Your Financial Plan in 3 Minutes',
+      desc: 'Insurance gaps, goal SIPs, emergency fund — your complete financial health score with a prioritised action plan.',
+      tag: 'Live now', tagGreen: true, href: '/personal-financial-planner', cta: 'Get My Plan →',
     },
     {
-      icon: '📊',
-      title: 'Old vs New Tax Regime',
-      desc: 'Which tax regime saves you more this year? Personalised to your salary, 80C investments, HRA and home loan.',
-      tag: 'Coming soon', tagGreen: false, href: '#', cta: 'Coming soon',
+      icon: '🏖️',
+      title: 'Retirement Corpus Calculator',
+      desc: 'Know exactly how much you need to retire. Enter your assets, SIPs and expenses — see the gap and three ways to close it.',
+      tag: 'Live now', tagGreen: true, href: '/retirement-corpus-calculator', cta: 'Calculate Now →',
     },
   ]
 
