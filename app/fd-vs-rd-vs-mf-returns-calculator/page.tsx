@@ -85,12 +85,17 @@ function Slider({ label, val, set, min, max, step, disp, hint }: {
 
 // ─── Toggle ───────────────────────────────────────────────────────────────────
 function ToggleSwitch({ on, onToggle }: { on: boolean; onToggle: () => void }) {
+  // stopPropagation prevents the parent AdjustRow div onClick from also firing,
+  // which would double-toggle and immediately revert the state back.
   return (
-    <div onClick={onToggle} style={{
-      width: '40px', height: '22px', borderRadius: '999px',
-      background: on ? BRAND : '#e2e8f0', position: 'relative', flexShrink: 0, cursor: 'pointer',
-      transition: 'background 0.2s',
-    }}>
+    <div
+      onClick={e => { e.stopPropagation(); onToggle() }}
+      style={{
+        width: '40px', height: '22px', borderRadius: '999px',
+        background: on ? BRAND : '#e2e8f0', position: 'relative', flexShrink: 0, cursor: 'pointer',
+        transition: 'background 0.2s',
+      }}
+    >
       <div style={{
         position: 'absolute', top: '3px', left: on ? '21px' : '3px',
         width: '16px', height: '16px', borderRadius: '50%', background: '#fff',
