@@ -1,0 +1,10 @@
+{
+  "redirects": [
+    {
+      "source": "/(.*)",
+      "has": [{ "type": "host", "value": "realreturn.in" }],
+      "destination": "https://www.realreturn.in/$1",
+      "permanent": true
+    }
+  ]
+}
