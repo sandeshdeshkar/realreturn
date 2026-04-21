@@ -127,7 +127,7 @@ export default function FdVsSipPage({ config, result, breadcrumbs, related }: Pr
         <div style={{ background: '#0f3d22', padding: '24px 0 20px' }}>
           <div className="pw">
             <div style={{ fontSize: 11, fontWeight: 500, letterSpacing: '.07em', textTransform: 'uppercase', color: 'rgba(255,255,255,.4)', marginBottom: 6 }}>
-              FD vs SIP · India 2025
+              FD vs SIP
             </div>
             <h1 style={{ fontSize: 24, fontWeight: 600, color: '#fff', lineHeight: 1.2, letterSpacing: '-.3px', margin: 0 }}>
               {config.h1}
@@ -218,6 +218,9 @@ export default function FdVsSipPage({ config, result, breadcrumbs, related }: Pr
                 </div>
               </div>
 
+              <Link href="/fd-vs-rd-vs-mf-returns-calculator" style={{ display: 'block', background: '#1a6b3c', color: '#fff', fontWeight: 600, fontSize: 13, padding: '11px 20px', borderRadius: 8, textDecoration: 'none', textAlign: 'center' }}>
+                Customise your inputs →
+              </Link>
               {/* Assumptions */}
               <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 10, padding: '14px 16px', marginBottom: 12 }}>
                 <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '.05em', textTransform: 'uppercase', color: '#9ca3af', marginBottom: 10 }}>
@@ -238,9 +241,7 @@ export default function FdVsSipPage({ config, result, breadcrumbs, related }: Pr
                 ))}
               </div>
 
-              <Link href="/fd-vs-rd-vs-mf-returns-calculator" style={{ display: 'block', background: '#1a6b3c', color: '#fff', fontWeight: 600, fontSize: 13, padding: '11px 20px', borderRadius: 8, textDecoration: 'none', textAlign: 'center' }}>
-                Customise your inputs →
-              </Link>
+             
             </div>
 
             {/* RIGHT COLUMN */}
