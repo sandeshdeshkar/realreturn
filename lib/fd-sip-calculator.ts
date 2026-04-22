@@ -201,8 +201,12 @@ export function calculate(inputs: CalcInputs): CalcResult {
 // ── Formatting helpers ────────────────────────────────────────────────────
 export function fmtL(amount: number): string {
   const lakhs = amount / 100000
-  if (lakhs >= 100) return `₹${(Math.round(lakhs / 10) / 10).toFixed(1)}Cr`
-  return `₹${(Math.round(lakhs * 10) / 10).toFixed(1)}L`
+  const rounded = Math.round(lakhs * 10) / 10
+  if (lakhs >= 100) {
+    const cr = Math.round(lakhs / 10) / 10
+    return `₹${cr % 1 === 0 ? cr.toFixed(0) : cr.toFixed(1)}Cr`
+  }
+  return `₹${rounded % 1 === 0 ? rounded.toFixed(0) : rounded.toFixed(1)}L`
 }
 
 export function fmtPct(pct: number): string {
