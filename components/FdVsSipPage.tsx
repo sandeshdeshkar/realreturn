@@ -276,7 +276,7 @@ export default function FdVsSipPage({ config, result, breadcrumbs, related }: Pr
                         ✦ Real Return
                       </div>
                       <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 26, fontWeight: 500, color: '#fff', lineHeight: 1, marginBottom: 4 }}>
-                        SIP wins by {gapL}
+                        SIP wins by {fmtL(sip.postTaxCorpus - fd.postTaxCorpus)} after tax
                       </div>
                       <div style={{ fontSize: 11, color: 'rgba(255,255,255,.75)' }}>
                         After {inputs.taxSlab}% tax &amp; {inputs.inflationRate}% inflation on {investedL} invested
