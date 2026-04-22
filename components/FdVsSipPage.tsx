@@ -242,16 +242,26 @@ export default function FdVsSipPage({ config, result, breadcrumbs, related }: Pr
                       onClick={() => setState(2)}
                       style={{
                         display: 'block', width: '100%', border: 'none',
-                        borderTop: '2px solid #4ade80',
+                        borderTop: '3px solid #4ade80',
                         background: '#0f3d22', color: '#fff',
-                        padding: '18px 20px',
-                        fontFamily: "'Sora', sans-serif", fontSize: 15, fontWeight: 700,
+                        padding: '20px 20px',
+                        fontFamily: "'Sora', sans-serif", fontSize: 16, fontWeight: 700,
                         cursor: 'pointer', textAlign: 'center',
+                        WebkitTapHighlightColor: 'rgba(74,222,128,.2)',
                       }}
                     >
-                      🔓 But what's the Real Return? ↓
-                      <div style={{ fontSize: 11, fontWeight: 400, color: 'rgba(255,255,255,.6)', marginTop: 5 }}>
-                        After tax &amp; inflation — most people don't know this number
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                        <span>🔓</span>
+                        <span>But what's the Real Return?</span>
+                        <span style={{ color: '#4ade80', fontSize: 20 }}>↓</span>
+                      </div>
+                      <div style={{ fontSize: 11, fontWeight: 400, color: 'rgba(255,255,255,.6)', marginTop: 6 }}>
+                        Tap to see after tax &amp; inflation — most people don't know this number
+                      </div>
+                      <div style={{ marginTop: 8, display: 'flex', justifyContent: 'center' }}>
+                        <span style={{ background: '#4ade80', color: '#0f3d22', fontSize: 11, fontWeight: 700, padding: '4px 14px', borderRadius: 20, letterSpacing: '.03em' }}>
+                          TAP TO REVEAL
+                        </span>
                       </div>
                     </button>
                   </>
@@ -273,33 +283,48 @@ export default function FdVsSipPage({ config, result, breadcrumbs, related }: Pr
                       </div>
                     </div>
 
-                    {/* Real chips */}
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1, background: '#e5e7eb' }}>
+                    {/* Real chips — prominent numbers */}
+                    <div style={{ background: '#fff' }}>
                       {[
                         { name: 'SIP', nominal: sipNomL, posttax: sipL, real: sipRealL, pct: sipPct, win: true },
                         { name: 'FD',  nominal: fdNomL,  posttax: fdL,  real: fdRealL,  pct: fdPct,  win: false },
-                      ].map(chip => (
-                        <div key={chip.name} style={{ background: '#fff', padding: '12px 14px' }}>
-                          <div style={{ fontSize: 10, fontWeight: 700, color: '#9ca3af', letterSpacing: '.06em', textTransform: 'uppercase', marginBottom: 8 }}>{chip.name}</div>
-                          {[
-                            { label: 'Before tax',    val: chip.nominal, colored: false },
-                            { label: 'After tax',     val: chip.posttax, colored: true  },
-                            { label: 'After inflation', val: chip.real,  colored: true  },
-                          ].map(row => (
-                            <div key={row.label} style={{ marginBottom: 7 }}>
-                              <div style={{ fontSize: 9, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: 1 }}>{row.label}</div>
-                              <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 15, fontWeight: 500, color: row.colored ? (chip.win ? '#1a6b3c' : '#6b7280') : '#374151' }}>
-                                {row.val}
-                              </div>
+                      ].map((chip, ci) => (
+                        <div key={chip.name} style={{ padding: '16px 18px', borderBottom: ci === 0 ? '1px solid #e5e7eb' : 'none' }}>
+                          {/* Instrument header */}
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+                            <div style={{ fontSize: 12, fontWeight: 700, color: chip.win ? '#1a6b3c' : '#6b7280', letterSpacing: '.06em', textTransform: 'uppercase' }}>{chip.name}</div>
+                            <div style={{
+                              fontSize: 11, fontWeight: 700, fontFamily: "'DM Mono', monospace",
+                              padding: '3px 10px', borderRadius: 20,
+                              background: chip.win ? '#f0fdf4' : '#fff7ed',
+                              color: chip.win ? '#166534' : '#92400e',
+                            }}>
+                              {chip.pct}/yr real
                             </div>
-                          ))}
-                          <div style={{
-                            display: 'inline-block', fontSize: 10, fontWeight: 700,
-                            fontFamily: "'DM Mono', monospace", padding: '2px 7px', borderRadius: 4, marginTop: 2,
-                            background: chip.win ? '#f0fdf4' : '#fff7ed',
-                            color: chip.win ? '#166534' : '#92400e',
-                          }}>
-                            {chip.pct}/yr real
+                          </div>
+
+                          {/* Three numbers in a row */}
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+                            {[
+                              { label: 'Before tax',      val: chip.nominal, highlight: false },
+                              { label: 'After tax',       val: chip.posttax, highlight: chip.win },
+                              { label: 'After inflation', val: chip.real,    highlight: chip.win },
+                            ].map((row, ri) => (
+                              <div key={row.label} style={{
+                                background: row.highlight ? '#f0fdf4' : '#f9fafb',
+                                border: `1px solid ${row.highlight ? '#bbf7d0' : '#e5e7eb'}`,
+                                borderRadius: 8, padding: '10px 10px',
+                                textAlign: 'center',
+                              }}>
+                                <div style={{ fontSize: 9, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: 4 }}>{row.label}</div>
+                                <div style={{
+                                  fontFamily: "'DM Mono', monospace", fontSize: 16, fontWeight: 600,
+                                  color: row.highlight ? '#1a6b3c' : (chip.win ? '#374151' : '#6b7280'),
+                                }}>
+                                  {row.val}
+                                </div>
+                              </div>
+                            ))}
                           </div>
                         </div>
                       ))}
@@ -325,15 +350,24 @@ export default function FdVsSipPage({ config, result, breadcrumbs, related }: Pr
                       </div>
                     </div>
 
-                    {/* Actions */}
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1, background: '#e5e7eb' }}>
-                      <button onClick={() => setState(3)} style={{ padding: '12px 14px', border: 'none', background: '#1a6b3c', color: '#fff', fontFamily: "'Sora', sans-serif", fontSize: 12, fontWeight: 600, cursor: 'pointer', textAlign: 'center' }}>
+                    {/* Actions — full width, prominent */}
+                    <div style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 8, borderTop: '1px solid #e5e7eb' }}>
+                      <button onClick={() => setState(3)} style={{
+                        width: '100%', border: 'none', background: '#1a6b3c', color: '#fff',
+                        padding: '14px 20px', borderRadius: 8,
+                        fontFamily: "'Sora', sans-serif", fontSize: 14, fontWeight: 600,
+                        cursor: 'pointer', textAlign: 'center',
+                        WebkitTapHighlightColor: 'rgba(0,0,0,.1)',
+                      }}>
                         Adjust inputs →
-                        <span style={{ display: 'block', fontSize: 10, fontWeight: 400, opacity: .75, marginTop: 1 }}>Change amount &amp; duration</span>
                       </button>
-                      <button onClick={shareResult} style={{ padding: '12px 14px', border: 'none', background: '#fff', color: '#1a6b3c', fontFamily: "'Sora', sans-serif", fontSize: 12, fontWeight: 600, cursor: 'pointer', textAlign: 'center' }}>
+                      <button onClick={shareResult} style={{
+                        width: '100%', border: '1.5px solid #1a6b3c', background: '#fff', color: '#1a6b3c',
+                        padding: '12px 20px', borderRadius: 8,
+                        fontFamily: "'Sora', sans-serif", fontSize: 14, fontWeight: 600,
+                        cursor: 'pointer', textAlign: 'center',
+                      }}>
                         Share result
-                        <span style={{ display: 'block', fontSize: 10, fontWeight: 400, opacity: .75, marginTop: 1 }}>Copy link</span>
                       </button>
                     </div>
                   </>
@@ -403,49 +437,70 @@ export default function FdVsSipPage({ config, result, breadcrumbs, related }: Pr
 
                     {/* Live results */}
                     <div style={{ padding: '14px 16px', background: '#f9fafb' }}>
-                      <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', color: '#9ca3af', marginBottom: 10 }}>Real returns on your numbers</div>
+                      <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', color: '#9ca3af', marginBottom: 12 }}>Real returns on your numbers</div>
 
+                      {/* Header row */}
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6, marginBottom: 6 }}>
+                        <div></div>
+                        <div style={{ fontSize: 10, fontWeight: 700, color: '#1a6b3c', textAlign: 'center', letterSpacing: '.04em', textTransform: 'uppercase' }}>SIP</div>
+                        <div style={{ fontSize: 10, fontWeight: 700, color: '#2563eb', textAlign: 'center', letterSpacing: '.04em', textTransform: 'uppercase' }}>FD</div>
+                      </div>
+
+                      {/* Data rows */}
                       {[
-                        { label: 'Before tax',    sip: fmtL(liveSipNom),  fd: fmtL(liveFdNom)  },
-                        { label: 'After tax',     sip: fmtL(liveSipPT),   fd: fmtL(liveFdPT)   },
+                        { label: 'Before tax',      sip: fmtL(liveSipNom),  fd: fmtL(liveFdNom)  },
+                        { label: 'After tax',       sip: fmtL(liveSipPT),   fd: fmtL(liveFdPT)   },
                         { label: 'After inflation', sip: fmtL(liveSipReal), fd: fmtL(liveFdReal) },
-                      ].map(row => (
-                        <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: '1px solid #e5e7eb' }}>
-                          <div style={{ fontSize: 12, color: '#6b7280' }}>{row.label}</div>
-                          <div style={{ display: 'flex', gap: 14 }}>
-                            <div style={{ textAlign: 'right' }}>
-                              <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '.05em', textTransform: 'uppercase', color: '#9ca3af', marginBottom: 1 }}>SIP</div>
-                              <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 13, fontWeight: 500, color: '#1a6b3c' }}>{row.sip}</div>
-                            </div>
-                            <div style={{ textAlign: 'right' }}>
-                              <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '.05em', textTransform: 'uppercase', color: '#9ca3af', marginBottom: 1 }}>FD</div>
-                              <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 13, fontWeight: 500, color: '#6b7280' }}>{row.fd}</div>
-                            </div>
-                          </div>
+                      ].map((row, i) => (
+                        <div key={row.label} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6, padding: '8px 0', borderBottom: i < 2 ? '1px solid #e5e7eb' : 'none', alignItems: 'center' }}>
+                          <div style={{ fontSize: 11, color: '#6b7280' }}>{row.label}</div>
+                          <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 14, fontWeight: 600, color: '#1a6b3c', textAlign: 'center' }}>{row.sip}</div>
+                          <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 14, fontWeight: 500, color: '#374151', textAlign: 'center' }}>{row.fd}</div>
                         </div>
                       ))}
 
-                      {/* Gap bar */}
-                      <div style={{ marginTop: 10 }}>
-                        <div style={{ fontSize: 10, color: '#9ca3af', marginBottom: 5 }}>SIP vs FD corpus (before tax)</div>
-                        <div style={{ height: 28, background: '#e5e7eb', borderRadius: 5, overflow: 'hidden', position: 'relative', display: 'flex', alignItems: 'center' }}>
-                          <div style={{ width: '100%', height: '100%', background: '#1a6b3c', borderRadius: 5, display: 'flex', alignItems: 'center', paddingLeft: 10 }}>
-                            <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, fontWeight: 500, color: '#fff', whiteSpace: 'nowrap' }}>{fmtL(liveSipNom)}</span>
+                      {/* Gap bars — separate for SIP and FD */}
+                      <div style={{ marginTop: 14 }}>
+                        <div style={{ fontSize: 10, color: '#9ca3af', marginBottom: 8 }}>Corpus comparison (before tax)</div>
+                        {/* SIP bar */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                          <div style={{ fontSize: 11, fontWeight: 600, color: '#374151', width: 28, flexShrink: 0 }}>SIP</div>
+                          <div style={{ flex: 1, height: 28, background: '#f3f4f6', borderRadius: 5, overflow: 'hidden' }}>
+                            <div style={{ width: '100%', height: '100%', background: '#1a6b3c', borderRadius: 5, display: 'flex', alignItems: 'center', paddingLeft: 10 }}>
+                              <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, fontWeight: 500, color: '#fff' }}>{fmtL(liveSipNom)}</span>
+                            </div>
                           </div>
-                          <div style={{ position: 'absolute', right: 8, fontFamily: "'DM Mono', monospace", fontSize: 11, color: '#6b7280' }}>{fmtL(liveFdNom)}</div>
+                        </div>
+                        {/* FD bar */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <div style={{ fontSize: 11, fontWeight: 600, color: '#9ca3af', width: 28, flexShrink: 0 }}>FD</div>
+                          <div style={{ flex: 1, height: 28, background: '#f3f4f6', borderRadius: 5, overflow: 'hidden' }}>
+                            <div style={{ width: `${liveBarWidth}%`, height: '100%', background: '#93c5fd', borderRadius: 5, display: 'flex', alignItems: 'center', paddingLeft: 10 }}>
+                              <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, fontWeight: 500, color: '#1e3a8a' }}>{fmtL(liveFdNom)}</span>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </div>
 
-                    {/* Actions */}
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1, background: '#e5e7eb' }}>
-                      <button onClick={shareResult} style={{ padding: '11px 14px', border: 'none', background: '#1a6b3c', color: '#fff', fontFamily: "'Sora', sans-serif", fontSize: 12, fontWeight: 600, cursor: 'pointer', textAlign: 'center' }}>
+                    {/* Actions — full width, prominent */}
+                    <div style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 8, borderTop: '1px solid #e5e7eb' }}>
+                      <button onClick={shareResult} style={{
+                        width: '100%', border: 'none', background: '#1a6b3c', color: '#fff',
+                        padding: '14px 20px', borderRadius: 8,
+                        fontFamily: "'Sora', sans-serif", fontSize: 14, fontWeight: 600,
+                        cursor: 'pointer', textAlign: 'center',
+                      }}>
                         Share result
-                        <span style={{ display: 'block', fontSize: 10, fontWeight: 400, opacity: .75, marginTop: 1 }}>Copy link</span>
                       </button>
-                      <Link href="/fd-vs-rd-vs-mf-returns-calculator" style={{ padding: '11px 14px', background: '#fff', color: '#1a6b3c', fontFamily: "'Sora', sans-serif", fontSize: 12, fontWeight: 600, cursor: 'pointer', textAlign: 'center', textDecoration: 'none', display: 'block' }}>
+                      <Link href="/fd-vs-rd-vs-mf-returns-calculator" style={{
+                        display: 'block', width: '100%',
+                        border: '1.5px solid #1a6b3c', background: '#fff', color: '#1a6b3c',
+                        padding: '12px 20px', borderRadius: 8,
+                        fontFamily: "'Sora', sans-serif", fontSize: 14, fontWeight: 600,
+                        textAlign: 'center', textDecoration: 'none',
+                      }}>
                         See FD vs RD vs MF →
-                        <span style={{ display: 'block', fontSize: 10, fontWeight: 400, opacity: .75, marginTop: 1 }}>Full comparison</span>
                       </Link>
                     </div>
                   </>
