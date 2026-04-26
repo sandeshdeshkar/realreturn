@@ -3,7 +3,7 @@
 // Existing pages are preserved. New programmatic pages auto-generate from PAGE_CONFIGS.
 
 import type { MetadataRoute } from 'next'
-import { PAGE_CONFIGS } from '../lib/fd-sip-configs'
+import { PAGE_CONFIGS } from '@/lib/fd-sip-configs'
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const base = 'https://www.realreturn.in'
@@ -19,6 +19,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
     },
     {
       url:              `${base}/fd-vs-rd-vs-mf-returns-calculator`,
+      lastModified:     now,
+      changeFrequency:  'weekly',
+      priority:         0.9,
+    },
+    {
+      url:              `${base}/fd-vs-sip`,
       lastModified:     now,
       changeFrequency:  'weekly',
       priority:         0.9,
