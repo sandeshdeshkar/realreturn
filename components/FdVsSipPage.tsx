@@ -118,8 +118,8 @@ export default function FdVsSipPage({ config, result, breadcrumbs, related }: Pr
     setTimeout(() => setShowToast(false), 2500)
   }, [amount, duration])
 
-  // ── FAQs — scenario-specific, full terms ──────────────────────────────
-  const faqs = [
+  // ── FAQs — use config override if set, else auto-generate from inputs ──
+  const faqs = config.faqs ?? [
     {
       q: `Is ₹${inputs.monthlyAmount.toLocaleString('en-IN')}/month SIP in Equity Mutual Funds better than Fixed Deposit (FD) for ${inputs.durationYears} years?`,
       a: `Based on estimated returns, yes — at a ${inputs.taxSlab}% tax slab. At ${inputs.sipCagr}% CAGR, SIP gives ${sipNomL} vs FD's ${fdNomL} before tax. After tax and inflation, SIP's estimated real return is ${sipPct}/yr vs FD's ${fdPct}/yr. Use the tax slider in "Real Return" above to see your bracket.`,
@@ -599,14 +599,21 @@ export default function FdVsSipPage({ config, result, breadcrumbs, related }: Pr
                 </div>
               </div>
 
-              {/* CHANGE: Break-even insight */}
+              {/* Break-even insight — uses config override if set, else generic */}
               <div style={sec}>
                 <div style={{ background: '#fff8f0', border: '1px solid #fed7aa', borderRadius: 10, padding: '14px 16px' }}>
                   <span style={{ fontSize: 18, display: 'block', marginBottom: 5 }}>💡</span>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: '#92400e', marginBottom: 4 }}>When does SIP overtake Fixed Deposit?</div>
-                  <div style={{ fontSize: 12, color: '#7c3100', lineHeight: 1.65 }}>
-                    At assumed returns of <strong>{inputs.sipCagr}% for SIP</strong> and <strong>{inputs.fdRate}% for FD</strong>, SIP overtakes Fixed Deposit around <strong>year 4</strong>. Before that, FD's guaranteed compounding keeps it ahead. After year 4, the gap widens to <strong>{gapL} by year {inputs.durationYears}</strong>. At 0% tax, the break-even shifts to around year 6. Use the tax slider above to see your bracket.
+                  <div style={{ fontSize: 13, fontWeight: 700, color: '#92400e', marginBottom: 4 }}>
+                    {config.breakEvenInsight?.title ?? 'When does SIP overtake Fixed Deposit?'}
                   </div>
+                  {config.breakEvenInsight ? (
+                    <div style={{ fontSize: 12, color: '#7c3100', lineHeight: 1.65 }}
+                      dangerouslySetInnerHTML={{ __html: config.breakEvenInsight.body }} />
+                  ) : (
+                    <div style={{ fontSize: 12, color: '#7c3100', lineHeight: 1.65 }}>
+                      At assumed returns of <strong>{inputs.sipCagr}% for SIP</strong> and <strong>{inputs.fdRate}% for FD</strong>, SIP overtakes Fixed Deposit around <strong>year 4</strong>. Before that, FD's guaranteed compounding keeps it ahead. After year 4, the gap widens to <strong>{gapL} by year {inputs.durationYears}</strong>. At 0% tax, the break-even shifts to around year 6. Use the tax slider above to see your bracket.
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -635,7 +642,11 @@ export default function FdVsSipPage({ config, result, breadcrumbs, related }: Pr
                   ))}
                 </div>
                 <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: '11px 14px', fontSize: 13, color: '#374151', lineHeight: 1.6 }}>
-                  Same money, same duration. The only difference is <em>where</em> you put it. SIP ends up giving you <strong>{gapL} more</strong> — roughly <strong>~{gapYears} years of your monthly savings</strong>.
+                  {config.differenceCallout ? (
+                    <span dangerouslySetInnerHTML={{ __html: config.differenceCallout }} />
+                  ) : (
+                    <>Same money, same duration. The only difference is <em>where</em> you put it. SIP ends up giving you <strong>{gapL} more</strong> — roughly <strong>~{gapYears} years of your monthly savings</strong>.</>
+                  )}
                 </div>
               </div>
 
@@ -660,7 +671,9 @@ export default function FdVsSipPage({ config, result, breadcrumbs, related }: Pr
               {/* When FD wins — CHANGE: full terms */}
               <div style={sec}>
                 <div style={lbl}>When is Fixed Deposit (FD) the better choice?</div>
-                <p style={{ fontSize: 13, color: '#6b7280', marginBottom: 12 }}>SIP wins here — but Fixed Deposit is better if:</p>
+                <p style={{ fontSize: 13, color: '#6b7280', marginBottom: 12 }}>
+                  {config.whenFdWinsIntro ?? 'SIP wins here — but Fixed Deposit is better if:'}
+                </p>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                   {[
                     { title: 'You need money within 3 years', text: 'SIP can drop 30–40% temporarily. FD guarantees your amount on the exact date you need it.' },
@@ -745,20 +758,20 @@ export default function FdVsSipPage({ config, result, breadcrumbs, related }: Pr
                 )}
               </div>
 
-              {/* CHANGE: Editorial collapsible */}
+              {/* Editorial collapsible — uses config override if set */}
               <div style={sec}>
                 <button onClick={() => setEditOpen(o => !o)} style={{ width: '100%', background: '#fff', border: '1px solid #e5e7eb', borderRadius: 8, padding: '11px 16px', fontFamily: "'Sora', sans-serif", fontSize: 13, color: '#374151', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <span>Why do these numbers work out this way?</span>
+                  <span>{config.editorialSections ? `Why ₹${inputs.monthlyAmount.toLocaleString('en-IN')}/month SIP is more powerful than it looks` : 'Why do these numbers work out this way?'}</span>
                   <span style={{ fontSize: 12, color: '#9ca3af', transform: editOpen ? 'rotate(180deg)' : 'none', transition: 'transform .2s', display: 'inline-block' }}>▼</span>
                 </button>
                 {editOpen && (
                   <div style={{ marginTop: 16 }}>
-                    {[
+                    {(config.editorialSections ?? [
                       { h: `Why ${inputs.durationYears} years tips the balance toward SIP`, p: `In the first 1–3 years, FD and SIP give similar results. From year 4 onwards, SIP's compounding takes over. The longer the horizon, the bigger the gap.` },
                       { h: 'How income tax quietly kills FD returns', p: `In the ${inputs.taxSlab}% bracket, ${inputs.taxSlab} paise of every rupee of FD interest goes to tax. Over ${inputs.durationYears} years that's ${fdTaxL}. SIP profits are taxed at only 12.5% above ₹1.25L — just ${sipTaxL} total.` },
                       { h: `Why FD loses to ${inputs.inflationRate}% inflation`, p: `FD earns ${inputs.fdRate}%. After ${inputs.taxSlab}% tax: ${(inputs.fdRate * (1 - inputs.taxSlab / 100)).toFixed(1)}%. Minus ${inputs.inflationRate}% inflation: ${fdPct}/year real. Your ${investedL} today only buys ${fdRealL} worth in ${inputs.durationYears} years.` },
                       { h: 'The smart middle path', p: `Most planners suggest splitting: 70% in SIP for long-term growth, 30% in FD for safety. SIP builds wealth. FD keeps a guaranteed buffer for near-term needs.` },
-                    ].map(s => (
+                    ]).map(s => (
                       <div key={s.h}>
                         <h3 style={{ fontSize: 14, fontWeight: 600, color: '#111827', margin: '16px 0 5px' }}>{s.h}</h3>
                         <p style={{ fontSize: 13, color: '#4b5563', lineHeight: 1.75, margin: '0 0 8px' }}>{s.p}</p>
@@ -782,23 +795,44 @@ export default function FdVsSipPage({ config, result, breadcrumbs, related }: Pr
                 ))}
               </div>
 
-              {/* CHANGE: Try other combinations — mobile only (desktop sidebar handles) */}
-              {related.filter(Boolean).length > 0 && (
-                <div className="mob-only" style={{ paddingTop: 20, borderTop: '1px solid #e5e7eb', marginTop: 4 }}>
-                  <div style={lbl}>Try other combinations</div>
-                  <div style={{ border: '1px solid #e5e7eb', borderRadius: 10, overflow: 'hidden', background: '#fff' }}>
-                    {(related.filter(Boolean) as NonNullable<typeof related[number]>[]).map((r, i, arr) => (
-                      <Link key={r.slug} href={`/fd-vs-sip/${r.slug}`} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '13px 16px', borderBottom: i < arr.length - 1 ? '1px solid #f3f4f6' : 'none', textDecoration: 'none' }}>
-                        <div>
-                          <div style={{ fontSize: 13, fontWeight: 500, color: '#111827', lineHeight: 1.4, marginBottom: 2 }}>{r.title}</div>
-                          <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: '#1a6b3c' }}>SIP {r.sipL} vs FD {r.fdL}</div>
-                        </div>
-                        <span style={{ color: '#9ca3af', fontSize: 16, flexShrink: 0 }}>→</span>
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-              )}
+              {/* Try other combinations — mobile only */}
+              {/* Fixed list of 4. If the page is live (in related), shows corpus numbers + live link. Otherwise "Coming soon". */}
+              <div className="mob-only" style={{ paddingTop: 20, borderTop: '1px solid #e5e7eb', marginTop: 4 }}>
+                <div style={lbl}>Try other combinations</div>
+                {(() => {
+                  const combos = [
+                    { slug: '5000-per-month/10-years',   label: '₹5,000/month · 10 years'  },
+                    { slug: '10000-per-month/10-years',  label: '₹10,000/month · 10 years' },
+                    { slug: '10000-per-month/5-years',   label: '₹10,000/month · 5 years'  },
+                    { slug: '10000-per-month/15-years',  label: '₹10,000/month · 15 years' },
+                    { slug: '20000-per-month/10-years',  label: '₹20,000/month · 10 years' },
+                  ].filter(c => c.slug !== config.slug.join('/'))
+                  const liveMap = Object.fromEntries(
+                    (related.filter(Boolean) as NonNullable<typeof related[number]>[]).map(r => [r.slug, r])
+                  )
+                  return (
+                    <div style={{ border: '1px solid #e5e7eb', borderRadius: 10, overflow: 'hidden', background: '#fff' }}>
+                      {combos.map((c, i) => {
+                        const live = liveMap[c.slug]
+                        return (
+                          <div key={c.slug} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '13px 16px', borderBottom: i < combos.length - 1 ? '1px solid #f3f4f6' : 'none' }}>
+                            <div>
+                              <div style={{ fontSize: 13, fontWeight: 500, color: live ? '#111827' : '#6b7280' }}>{c.label}</div>
+                              <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, marginTop: 2, color: live ? '#1a6b3c' : '#9ca3af' }}>
+                                {live ? `SIP ${live.sipL} vs FD ${live.fdL}` : 'Coming soon'}
+                              </div>
+                            </div>
+                            {live
+                              ? <Link href={`/fd-vs-sip/${c.slug}`} style={{ color: '#9ca3af', fontSize: 16, textDecoration: 'none' }}>→</Link>
+                              : <span style={{ color: '#d1d5db', fontSize: 16 }}>→</span>
+                            }
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )
+                })()}
+              </div>
 
               {/* CHANGE: Related tools — mobile only */}
               <div className="mob-only" style={{ paddingTop: 20, borderTop: '1px solid #e5e7eb', marginTop: 4 }}>
@@ -871,20 +905,39 @@ export default function FdVsSipPage({ config, result, breadcrumbs, related }: Pr
                 </table>
               </div>
 
-              {/* Try other combinations */}
-              {related.filter(Boolean).length > 0 && (
-                <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden' }}>
-                  <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.05em', textTransform: 'uppercase', color: '#6b7280', padding: '14px 16px 10px', borderBottom: '1px solid #e5e7eb' }}>
-                    Try other combinations
+              {/* Try other combinations — desktop sidebar */}
+              {(() => {
+                const combos = [
+                  { slug: '5000-per-month/10-years',   label: '₹5K/month · 10 years'  },
+                  { slug: '10000-per-month/10-years',  label: '₹10K/month · 10 years' },
+                  { slug: '10000-per-month/5-years',   label: '₹10K/month · 5 years'  },
+                  { slug: '10000-per-month/15-years',  label: '₹10K/month · 15 years' },
+                  { slug: '20000-per-month/10-years',  label: '₹20K/month · 10 years' },
+                ].filter(c => c.slug !== config.slug.join('/'))
+                const liveMap = Object.fromEntries(
+                  (related.filter(Boolean) as NonNullable<typeof related[number]>[]).map(r => [r.slug, r])
+                )
+                return (
+                  <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden' }}>
+                    <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.05em', textTransform: 'uppercase', color: '#6b7280', padding: '14px 16px 10px', borderBottom: '1px solid #e5e7eb' }}>
+                      Try other combinations
+                    </div>
+                    {combos.map((c, i, arr) => {
+                      const live = liveMap[c.slug]
+                      return live
+                        ? (
+                          <Link key={c.slug} href={`/fd-vs-sip/${c.slug}`} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '11px 16px', borderBottom: i < arr.length - 1 ? '1px solid #f3f4f6' : 'none', textDecoration: 'none', fontSize: 13, color: '#111827', fontWeight: 500 }}>
+                            {c.label} <span style={{ color: '#9ca3af' }}>→</span>
+                          </Link>
+                        ) : (
+                          <div key={c.slug} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '11px 16px', borderBottom: i < arr.length - 1 ? '1px solid #f3f4f6' : 'none', fontSize: 13, color: '#9ca3af' }}>
+                            {c.label} <span style={{ color: '#d1d5db' }}>→</span>
+                          </div>
+                        )
+                    })}
                   </div>
-                  {(related.filter(Boolean) as NonNullable<typeof related[number]>[]).map((r, i, arr) => (
-                    <Link key={r.slug} href={`/fd-vs-sip/${r.slug}`} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '11px 16px', borderBottom: i < arr.length - 1 ? '1px solid #f3f4f6' : 'none', textDecoration: 'none', fontSize: 13, color: '#111827', fontWeight: 500 }}>
-                      {r.title}
-                      <span style={{ color: '#9ca3af' }}>→</span>
-                    </Link>
-                  ))}
-                </div>
-              )}
+                )
+              })()}
 
               {/* Related tools */}
               <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden' }}>
