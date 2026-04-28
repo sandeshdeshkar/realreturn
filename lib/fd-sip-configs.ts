@@ -70,7 +70,7 @@ export const PAGE_CONFIGS: PageConfig[] = [
       monthlyAmount: 10000,
       durationYears: 10,
     },
-    title: '₹10,000/Month SIP vs FD for 10 Years — Real Returns India 2025',
+    title: '₹10,000/Month SIP vs FD for 10 Years — Real Returns India',
     metaDescription:
       '₹10,000/month SIP gives ₹22.4L vs FD\'s ₹17.4L over 10 years. After 30% tax and 6% inflation, SIP real return is +5.1%/yr vs FD\'s −1.0%/yr. See year-by-year breakdown.',
     h1: '₹10,000/Month SIP vs FD for 10 Years',
@@ -91,7 +91,7 @@ export const PAGE_CONFIGS: PageConfig[] = [
       monthlyAmount: 5000,
       durationYears: 10,
     },
-    title: '₹5,000/Month SIP vs FD for 10 Years — Real Returns India 2025',
+    title: '₹5,000/Month SIP vs FD for 10 Years — Real Returns India',
     metaDescription:
       '₹5,000/month SIP gives ₹11.2L vs FD\'s ₹8.7L over 10 years. After 30% tax and 6% inflation, SIP real return is +5.2%/yr vs FD\'s −1.0%/yr. Even a small SIP beats FD — see the real numbers.',
     h1: '₹5,000/Month SIP vs FD for 10 Years',
@@ -178,7 +178,7 @@ export const PAGE_CONFIGS: PageConfig[] = [
   // {
   //   slug: ['20000-per-month', '10-years'],
   //   inputs: { ...DEFAULTS, monthlyAmount: 20000, durationYears: 10 },
-  //   title: '₹20,000/Month SIP vs FD for 10 Years — Real Returns India 2025',
+  //   title: '₹20,000/Month SIP vs FD for 10 Years — Real Returns India',
   //   metaDescription: '₹20,000/month SIP gives ₹44.8L vs FD\'s ₹34.8L over 10 years. After 30% tax and inflation, SIP real return is +5.1%/yr vs FD\'s −1.0%/yr.',
   //   h1: '₹20,000/Month SIP vs FD for 10 Years',
   //   relatedSlugs: ['10000-per-month/10-years', '5000-per-month/10-years', '20000-per-month/5-years', '20000-per-month/15-years'],
