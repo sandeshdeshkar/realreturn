@@ -932,7 +932,7 @@ export default function HomePage() {
         }
         .hero-grid {
           display: grid;
-          grid-template-columns: 1fr 1fr;
+          grid-template-columns: 1.1fr 1fr;
           gap: 56px;
           align-items: center;
         }
