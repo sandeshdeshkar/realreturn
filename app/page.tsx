@@ -82,13 +82,13 @@ const TOOLS = [
 ]
 
 const INSTRUMENTS = [
-  { icon: '🏦', name: 'Savings Account', nominal: '3.0%', postTax: '2.1%', real: '−3.7%', realTone: 'red', verdict: 'Losing', verdictTone: 'lose', bestFor: 'Daily-use cash only' },
-  { icon: '💰', name: 'Fixed Deposit (5yr)', nominal: '7.0%', postTax: '4.9%', real: '−1.0%', realTone: 'red', verdict: 'Losing', verdictTone: 'lose', bestFor: '0–3 year goals, capital safety' },
-  { icon: '📅', name: 'Recurring Deposit', nominal: '6.5%', postTax: '4.6%', real: '−1.4%', realTone: 'red', verdict: 'Losing', verdictTone: 'lose', bestFor: 'Forced monthly saving habit' },
-  { icon: '🇮🇳', name: 'PPF (15yr)', nominal: '7.1%', postTax: '7.1%', real: '+1.0%', realTone: 'amber', verdict: 'Modest', verdictTone: 'modest', bestFor: 'Long-term tax-free debt allocation' },
-  { icon: '🥇', name: 'Gold (10yr avg)', nominal: '9.5%', postTax: '8.3%', real: '+2.2%', realTone: 'amber', verdict: 'Modest', verdictTone: 'modest', bestFor: '5–10% of portfolio as hedge' },
-  { icon: '📈', name: 'NPS (Equity heavy)', nominal: '11.0%', postTax: '10.0%', real: '+3.8%', realTone: 'green', verdict: 'Strong', verdictTone: 'modest', bestFor: 'Tax-saver retirement (locked-in)' },
-  { icon: '⚡', name: 'Equity Mutual Fund (SIP)', nominal: '12.0%', postTax: '10.6%', real: '+4.3%', realTone: 'green', verdict: 'Best', verdictTone: 'strong', bestFor: '5+ year wealth creation goals' },
+  { icon: '🏦', name: 'Savings Account', nominal: '3.0%', postTax: '2.1%', real: '−3.7%', realTone: 'red', verdict: 'Losing', verdictTone: 'lose', bestFor: 'Daily-use cash only', barWidth: 50, barSide: 'negative' as const, winner: false },
+  { icon: '💰', name: 'Fixed Deposit (5yr)', nominal: '7.0%', postTax: '4.9%', real: '−1.0%', realTone: 'red', verdict: 'Losing', verdictTone: 'lose', bestFor: '0–3 year goals, capital safety', barWidth: 14, barSide: 'negative' as const, winner: false },
+  { icon: '📅', name: 'Recurring Deposit', nominal: '6.5%', postTax: '4.6%', real: '−1.4%', realTone: 'red', verdict: 'Losing', verdictTone: 'lose', bestFor: 'Forced monthly saving habit', barWidth: 19, barSide: 'negative' as const, winner: false },
+  { icon: '🇮🇳', name: 'PPF (15yr)', nominal: '7.1%', postTax: '7.1%', real: '+1.0%', realTone: 'amber', verdict: 'Modest', verdictTone: 'modest', bestFor: 'Long-term tax-free debt allocation', barWidth: 14, barSide: 'positive-amber' as const, winner: false },
+  { icon: '🥇', name: 'Gold (10yr avg)', nominal: '9.5%', postTax: '8.3%', real: '+2.2%', realTone: 'amber', verdict: 'Modest', verdictTone: 'modest', bestFor: '5–10% of portfolio as hedge', barWidth: 30, barSide: 'positive-amber' as const, winner: false },
+  { icon: '📈', name: 'NPS (Equity heavy)', nominal: '11.0%', postTax: '10.0%', real: '+3.8%', realTone: 'green', verdict: 'Strong', verdictTone: 'modest', bestFor: 'Tax-saver retirement (locked-in)', barWidth: 50, barSide: 'positive' as const, winner: false },
+  { icon: '⚡', name: 'Equity Mutual Fund (SIP)', nominal: '12.0%', postTax: '10.6%', real: '+4.3%', realTone: 'green', verdict: 'Best', verdictTone: 'strong', bestFor: '5+ year wealth creation goals', barWidth: 50, barSide: 'positive' as const, winner: true },
 ] as const
 
 const SCENARIOS = [
@@ -211,6 +211,10 @@ export default function HomePage() {
           <div className="container">
             <div className="hero-grid">
               <div>
+                <div className="hero-eyebrow">
+                  <span className="hero-eyebrow-dot" />
+                  Real returns · After tax · After inflation
+                </div>
                 <h1>
                   Find the real return on <span className="accent">your investment.</span>
                 </h1>
@@ -218,6 +222,58 @@ export default function HomePage() {
                   What your money <span className="accent">actually</span> earns. After tax. After
                   inflation. The real number — not the one your bank quotes you.
                 </p>
+
+                {/* Decorative erosion chart — desktop only */}
+                <div className="erosion-chart" aria-hidden="true">
+                  <div className="erosion-chart-eyebrow">
+                    ₹1 lakh in a 7% FD · 30% slab · 6% inflation
+                  </div>
+                  <svg
+                    className="erosion-chart-svg"
+                    viewBox="0 0 480 110"
+                    preserveAspectRatio="none"
+                  >
+                    <line x1="0" y1="20" x2="480" y2="20" stroke="#e5ebe7" strokeWidth="1" strokeDasharray="2,4" />
+                    <line x1="0" y1="60" x2="480" y2="60" stroke="#e5ebe7" strokeWidth="1" strokeDasharray="2,4" />
+                    <line x1="0" y1="95" x2="480" y2="95" stroke="#e5ebe7" strokeWidth="1" strokeDasharray="2,4" />
+                    <line x1="10" y1="20" x2="470" y2="20" stroke="#8a958e" strokeWidth="1" strokeDasharray="3,3" opacity="0.4" />
+                    <path
+                      d="M 10 20 Q 120 28, 240 50 T 470 90 L 470 110 L 10 110 Z"
+                      fill="url(#erosionGradient)"
+                      opacity="0.15"
+                    />
+                    <path
+                      d="M 10 20 Q 120 28, 240 50 T 470 90"
+                      fill="none"
+                      stroke="#dc2626"
+                      strokeWidth="3"
+                      strokeLinecap="round"
+                    />
+                    <circle cx="10" cy="20" r="8" fill="#1a6b3c" opacity="0.15" />
+                    <circle cx="10" cy="20" r="5" fill="#1a6b3c" />
+                    <circle cx="10" cy="20" r="2" fill="white" />
+                    <circle cx="470" cy="90" r="8" fill="#dc2626" opacity="0.15" />
+                    <circle cx="470" cy="90" r="5" fill="#dc2626" />
+                    <circle cx="470" cy="90" r="2" fill="white" />
+                    <defs>
+                      <linearGradient id="erosionGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                        <stop offset="0%" stopColor="#dc2626" />
+                        <stop offset="100%" stopColor="#dc2626" stopOpacity="0" />
+                      </linearGradient>
+                    </defs>
+                  </svg>
+                  <div className="erosion-chart-labels">
+                    <div className="erosion-label">
+                      <span className="erosion-label-amount start">₹1,00,000</span>
+                      <span className="erosion-label-text">Today</span>
+                    </div>
+                    <span className="erosion-arrow">10 yrs →</span>
+                    <div className="erosion-label" style={{ textAlign: 'right' }}>
+                      <span className="erosion-label-amount end">₹90,094</span>
+                      <span className="erosion-label-text">Real value</span>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               <div className="calc-card">
@@ -340,7 +396,6 @@ export default function HomePage() {
         <div className="answer-summary">
           <div className="container">
             <div className="answer-summary-inner">
-              <div className="answer-summary-eyebrow">The short answer</div>
               <p>
                 In India, a 7% FD delivers approximately{' '}
                 <span className="loss">−1.04% real return per year</span> for a 30% tax-bracket
@@ -383,24 +438,24 @@ export default function HomePage() {
 
             <div className="tools-list">
               {TOOLS.map((tool) => {
-                const className = `tool-row ${tool.status === 'coming' ? 'coming' : ''}`
+                const isComing = tool.status === 'coming'
+                const className = `tool-row ${isComing ? 'coming' : ''}`
                 const content = (
                   <>
-                    <div className="tool-icon">{tool.icon}</div>
+                    <div className="tool-top-row">
+                      <div className="tool-icon">{tool.icon}</div>
+                    </div>
                     <div className="tool-content">
                       <div className="tool-question">{tool.question}</div>
-                      <div className="tool-name">{tool.name}</div>
-                    </div>
-                    <div
-                      className={`tool-status ${tool.status === 'coming' ? 'coming-tag' : ''}`}
-                    >
-                      {tool.status === 'coming' ? 'Coming' : 'Live'}
+                      <div className={`tool-name ${isComing ? 'coming-soon' : ''}`}>
+                        {isComing ? 'Coming soon' : tool.name}
+                      </div>
                     </div>
                     <div className="tool-arrow">→</div>
                   </>
                 )
 
-                if (tool.status === 'coming') {
+                if (isComing) {
                   return (
                     <div key={tool.name} className={className}>
                       {content}
@@ -496,45 +551,50 @@ export default function HomePage() {
             </h2>
             <p className="section-intro">
               Historical real returns across common Indian investment options after tax and 6%
-              inflation. The &quot;Best for&quot; column shows what each instrument is genuinely
-              useful for.
+              inflation. The bars show how far above or below zero each instrument lands.
             </p>
 
-            <div className="table-wrap">
-              <table className="investment-table">
-                <caption className="visually-hidden">
-                  Real returns on Indian investment instruments after tax and 6% inflation
-                </caption>
-                <thead>
-                  <tr>
-                    <th scope="col">Instrument</th>
-                    <th scope="col" className="num-col hide-mobile">Nominal</th>
-                    <th scope="col" className="num-col">Post-tax</th>
-                    <th scope="col" className="num-col">Real return</th>
-                    <th scope="col">Verdict</th>
-                    <th scope="col" className="hide-mobile">Best for</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {INSTRUMENTS.map((row) => (
-                    <tr key={row.name}>
-                      <td>
-                        <div className="instrument">
-                          <span className="instrument-icon">{row.icon}</span>
-                          {row.name}
-                        </div>
-                      </td>
-                      <td className="num hide-mobile">{row.nominal}</td>
-                      <td className="num">{row.postTax}</td>
-                      <td className={`num real-num ${row.realTone}`}>{row.real}</td>
-                      <td>
-                        <span className={`verdict ${row.verdictTone}`}>{row.verdict}</span>
-                      </td>
-                      <td className="best-for hide-mobile">{row.bestFor}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="scorecard-list">
+              {INSTRUMENTS.map((row) => {
+                const fillClass =
+                  row.barSide === 'negative'
+                    ? 'negative'
+                    : row.barSide === 'positive-amber'
+                    ? 'positive amber-fill'
+                    : 'positive'
+                return (
+                  <div
+                    key={row.name}
+                    className={`scorecard-row ${row.winner ? 'winner' : ''}`}
+                  >
+                    <div className="scorecard-instrument">
+                      <div className="scorecard-icon">{row.icon}</div>
+                      <div>
+                        <div className="scorecard-name">{row.name}</div>
+                        <div className="scorecard-best-for">{row.bestFor}</div>
+                      </div>
+                    </div>
+                    <div className="scorecard-real">
+                      <div className={`scorecard-real-num ${row.realTone}`}>{row.real}</div>
+                      <div className="scorecard-real-bar">
+                        <div
+                          className={`scorecard-real-fill ${fillClass}`}
+                          style={{ width: `${row.barWidth}%` }}
+                        />
+                      </div>
+                      <div className="scorecard-nominal">
+                        {row.nominal} nominal · {row.postTax} post-tax
+                      </div>
+                    </div>
+                    <div />
+                    <div className="scorecard-verdict">
+                      <span className={`scorecard-verdict-pill ${row.verdictTone}`}>
+                        {row.verdict}
+                      </span>
+                    </div>
+                  </div>
+                )
+              })}
             </div>
 
             <div className="table-footnote">
@@ -720,25 +780,12 @@ export default function HomePage() {
                 <h2>
                   Now run it on <span className="accent">your money.</span>
                 </h2>
-                <p>Pick a typical monthly amount or open the full calculator with your own numbers.</p>
-
-                <div className="quick-starts">
-                  {[5000, 10000, 25000, 50000].map((amt) => (
-                    <Link
-                      key={amt}
-                      href={`/fd-vs-rd-vs-mf-returns-calculator?amount=${amt}`}
-                      className="quick-start-btn"
-                    >
-                      <span className="amt">₹{amt.toLocaleString('en-IN')}</span> /month
-                    </Link>
-                  ))}
-                </div>
-
-                <div className="final-cta-secondary">
-                  Or{' '}
-                  <Link href="/fd-vs-rd-vs-mf-returns-calculator">open the full calculator</Link>{' '}
-                  with custom inputs
-                </div>
+                <p>
+                  Open the calculator with your own numbers. Get the real answer in 30 seconds.
+                </p>
+                <Link href="/fd-vs-rd-vs-mf-returns-calculator" className="final-cta-primary">
+                  Open the calculator <span>→</span>
+                </Link>
               </div>
             </div>
           </div>
@@ -792,6 +839,7 @@ export default function HomePage() {
         :global(:root) {
           --green: #1a6b3c;
           --green-deep: #134a29;
+          --green-darker: #0a2e1a;
           --green-soft: #e8f5ed;
           --green-tint: #f3faf5;
           --red: #dc2626;
@@ -862,15 +910,15 @@ export default function HomePage() {
           color: var(--ink);
         }
         .logo-icon {
-          width: 32px;
-          height: 32px;
+          width: 36px;
+          height: 36px;
           background: var(--green);
           border-radius: 8px;
           display: flex;
           align-items: center;
           justify-content: center;
           color: white;
-          font-size: 16px;
+          font-size: 18px;
         }
         .logo-text {
           display: flex;
@@ -879,13 +927,21 @@ export default function HomePage() {
         }
         .logo-name {
           font-weight: 600;
-          font-size: 15px;
+          font-size: 16px;
         }
         .logo-tag {
           font-size: 11px;
           color: var(--ink-3);
         }
-        @media (max-width: 480px) {
+        @media (max-width: 720px) {
+          .logo-icon {
+            width: 40px;
+            height: 40px;
+            font-size: 20px;
+          }
+          .logo-name {
+            font-size: 17px;
+          }
           .logo-tag {
             display: none;
           }
@@ -913,21 +969,62 @@ export default function HomePage() {
           }
         }
         .nav-links :global(a.nav-cta) {
-          background: var(--green);
-          color: white;
-          padding: 9px 16px;
+          background: transparent;
+          color: var(--green-deep);
+          padding: 8px 14px;
+          font-weight: 600;
         }
         .nav-links :global(a.nav-cta:hover) {
-          background: var(--green-deep);
+          background: var(--green-soft);
+          color: var(--green-deep);
+        }
+        @media (max-width: 720px) {
+          .nav-links :global(a.nav-cta) {
+            display: none;
+          }
         }
 
         /* HERO */
         .hero {
-          padding: 56px 0 40px;
+          padding: 72px 0 56px;
+          position: relative;
+          overflow: hidden;
+          background: linear-gradient(180deg, #fafdfb 0%, #ffffff 100%);
+        }
+        /* Decorative green blob in background */
+        .hero::before {
+          content: '';
+          position: absolute;
+          top: -200px;
+          left: -300px;
+          width: 800px;
+          height: 800px;
+          background: radial-gradient(circle, rgba(26, 107, 60, 0.08) 0%, transparent 60%);
+          pointer-events: none;
+          z-index: 0;
+        }
+        /* Subtle dot pattern fading from right */
+        .hero::after {
+          content: '';
+          position: absolute;
+          top: 0;
+          right: 0;
+          width: 50%;
+          height: 100%;
+          background-image: radial-gradient(circle, rgba(26, 107, 60, 0.06) 1px, transparent 1px);
+          background-size: 24px 24px;
+          pointer-events: none;
+          z-index: 0;
+          mask-image: linear-gradient(to left, rgba(0, 0, 0, 1) 0%, transparent 80%);
+          -webkit-mask-image: linear-gradient(to left, rgba(0, 0, 0, 1) 0%, transparent 80%);
+        }
+        .hero :global(.container) {
+          position: relative;
+          z-index: 1;
         }
         @media (max-width: 640px) {
           .hero {
-            padding: 28px 0 24px;
+            padding: 36px 0 32px;
           }
         }
         .hero-grid {
@@ -939,41 +1036,152 @@ export default function HomePage() {
         @media (max-width: 900px) {
           .hero-grid {
             grid-template-columns: 1fr;
-            gap: 24px;
+            gap: 28px;
           }
         }
+
+        /* Hero eyebrow pill */
+        .hero-eyebrow {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          font-size: 11px;
+          font-weight: 700;
+          color: var(--green-deep);
+          background: var(--green-soft);
+          padding: 6px 14px;
+          border-radius: 999px;
+          margin-bottom: 20px;
+          text-transform: uppercase;
+          letter-spacing: 0.1em;
+          border: 1px solid rgba(26, 107, 60, 0.15);
+        }
+        .hero-eyebrow-dot {
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          background: var(--green);
+          box-shadow: 0 0 0 3px rgba(26, 107, 60, 0.2);
+        }
+
         .hero h1 {
-          font-size: clamp(32px, 4.6vw, 50px);
-          line-height: 1.05;
-          font-weight: 600;
-          letter-spacing: -0.025em;
-          margin-bottom: 14px;
+          font-size: clamp(36px, 5.4vw, 60px);
+          line-height: 1.02;
+          font-weight: 700;
+          letter-spacing: -0.03em;
+          margin-bottom: 18px;
           color: var(--ink);
         }
         .hero h1 .accent {
           color: var(--green);
           font-style: italic;
-          font-weight: 500;
+          font-weight: 600;
         }
         .hero-subheadline {
           font-size: clamp(17px, 1.8vw, 21px);
           color: var(--ink-2);
-          line-height: 1.4;
-          margin-bottom: 0;
+          line-height: 1.45;
           font-weight: 500;
           letter-spacing: -0.01em;
+          margin-bottom: 32px;
+          max-width: 540px;
+        }
+        @media (max-width: 900px) {
+          /* On mobile, erosion chart is hidden — collapse the gap before calc card */
+          .hero-subheadline {
+            margin-bottom: 0;
+          }
         }
         .hero-subheadline .accent {
           color: var(--green);
           font-style: italic;
+          font-weight: 600;
         }
         @media (max-width: 900px) {
           .hero h1 {
             font-size: clamp(26px, 6vw, 34px);
-            margin-bottom: 10px;
+            margin-bottom: 12px;
           }
           .hero-subheadline {
             font-size: 15px;
+          }
+          .hero-eyebrow {
+            margin-bottom: 14px;
+            font-size: 10px;
+          }
+        }
+
+        /* Erosion chart — desktop only */
+        .erosion-chart {
+          background: white;
+          border: 1px solid var(--rule);
+          border-radius: 16px;
+          padding: 22px 24px;
+          max-width: 520px;
+          position: relative;
+          box-shadow: 0 1px 0 rgba(15, 26, 20, 0.02), 0 8px 24px -12px rgba(15, 26, 20, 0.08);
+        }
+        .erosion-chart-eyebrow {
+          font-size: 10px;
+          font-weight: 700;
+          color: var(--ink-3);
+          text-transform: uppercase;
+          letter-spacing: 0.12em;
+          margin-bottom: 14px;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+        .erosion-chart-eyebrow::before {
+          content: '';
+          width: 12px;
+          height: 1px;
+          background: var(--green);
+        }
+        .erosion-chart-svg {
+          width: 100%;
+          height: 110px;
+          display: block;
+          margin-bottom: 12px;
+        }
+        .erosion-chart-labels {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding-top: 12px;
+          border-top: 1px dashed var(--rule);
+        }
+        .erosion-label {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+        }
+        .erosion-label-amount {
+          font-family: 'DM Mono', monospace;
+          font-size: 16px;
+          font-weight: 600;
+        }
+        .erosion-label-amount.start {
+          color: var(--green-deep);
+        }
+        .erosion-label-amount.end {
+          color: var(--red);
+        }
+        .erosion-label-text {
+          font-size: 10px;
+          color: var(--ink-4);
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+          font-weight: 600;
+        }
+        .erosion-arrow {
+          font-family: 'DM Mono', monospace;
+          color: var(--ink-4);
+          font-size: 14px;
+        }
+        @media (max-width: 900px) {
+          .erosion-chart {
+            display: none;
           }
         }
 
@@ -981,9 +1189,24 @@ export default function HomePage() {
         .calc-card {
           background: var(--bg);
           border: 1px solid var(--rule);
-          border-radius: 16px;
+          border-radius: 18px;
           overflow: hidden;
-          box-shadow: 0 1px 0 rgba(15, 26, 20, 0.02), 0 16px 40px -20px rgba(15, 26, 20, 0.12);
+          box-shadow:
+            0 1px 0 rgba(15, 26, 20, 0.02),
+            0 0 0 1px rgba(26, 107, 60, 0.04),
+            0 24px 48px -24px rgba(15, 26, 20, 0.18),
+            0 8px 16px -8px rgba(15, 26, 20, 0.06);
+          position: relative;
+        }
+        .calc-card::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          height: 1px;
+          background: linear-gradient(90deg, transparent 0%, rgba(26, 107, 60, 0.3) 50%, transparent 100%);
+          z-index: 1;
         }
         .calc-header {
           background: var(--green-tint);
@@ -1253,14 +1476,6 @@ export default function HomePage() {
           margin: 0 auto;
           text-align: center;
         }
-        .answer-summary-eyebrow {
-          font-size: 11px;
-          font-weight: 600;
-          color: var(--ink-4);
-          text-transform: uppercase;
-          letter-spacing: 0.12em;
-          margin-bottom: 12px;
-        }
         .answer-summary p {
           font-size: clamp(15px, 1.6vw, 17px);
           color: var(--ink-2);
@@ -1383,103 +1598,173 @@ export default function HomePage() {
           line-height: 1.55;
         }
 
-        /* TOOLS */
+        /* TOOLS — card grid */
         .tools-list {
-          border-top: 1px solid var(--rule);
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 14px;
+        }
+        @media (min-width: 1024px) {
+          .tools-list {
+            grid-template-columns: repeat(3, 1fr);
+          }
+        }
+        @media (max-width: 720px) {
+          .tools-list {
+            grid-template-columns: 1fr;
+            gap: 10px;
+          }
         }
         .tools-list :global(.tool-row) {
-          display: grid;
-          grid-template-columns: 36px 1fr auto auto;
-          gap: 18px;
-          align-items: center;
-          padding: 22px 0;
-          border-bottom: 1px solid var(--rule);
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+          padding: 24px 22px;
+          border: 1px solid var(--rule);
+          border-radius: 16px;
+          background: var(--bg);
           text-decoration: none;
           color: var(--ink);
-          transition: padding 0.25s ease, background 0.25s ease;
+          transition: all 0.2s ease;
+          position: relative;
+          overflow: hidden;
+          min-height: 180px;
+        }
+        .tools-list :global(.tool-row::before) {
+          content: '';
+          position: absolute;
+          top: 0;
+          right: 0;
+          width: 80px;
+          height: 80px;
+          background: radial-gradient(circle at top right, var(--green-tint) 0%, transparent 70%);
+          opacity: 0;
+          transition: opacity 0.25s;
+          pointer-events: none;
         }
         .tools-list :global(.tool-row:hover) {
-          padding-left: 12px;
-          background: var(--green-tint);
+          border-color: var(--green);
+          transform: translateY(-2px);
+          box-shadow: 0 8px 20px -8px rgba(26, 107, 60, 0.18);
+        }
+        .tools-list :global(.tool-row:hover::before) {
+          opacity: 1;
         }
         .tools-list :global(.tool-row.coming) {
           opacity: 0.55;
           pointer-events: none;
         }
-        @media (max-width: 640px) {
-          .tools-list :global(.tool-row) {
-            grid-template-columns: 30px 1fr auto;
-            gap: 12px;
-            padding: 18px 0;
-          }
+
+        .tools-list :global(.tool-top-row) {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          gap: 12px;
         }
         .tools-list :global(.tool-icon) {
-          font-size: 22px;
+          font-size: 32px;
           line-height: 1;
-          text-align: center;
+          width: 56px;
+          height: 56px;
+          background: var(--green-tint);
+          border: 1px solid var(--green-soft);
+          border-radius: 12px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
         }
-        @media (max-width: 640px) {
-          .tools-list :global(.tool-icon) {
-            font-size: 18px;
-          }
-        }
+
         .tools-list :global(.tool-content) {
-          min-width: 0;
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
         }
         .tools-list :global(.tool-question) {
-          font-size: clamp(16px, 1.9vw, 20px);
-          font-weight: 500;
-          line-height: 1.3;
+          font-size: 17px;
+          font-weight: 600;
+          line-height: 1.35;
           letter-spacing: -0.01em;
           color: var(--ink);
-          margin-bottom: 4px;
         }
         .tools-list :global(.tool-name) {
           font-size: 12px;
-          color: var(--ink-3);
-          font-weight: 500;
-        }
-        @media (max-width: 640px) {
-          .tools-list :global(.tool-name) {
-            font-size: 11.5px;
-          }
-        }
-        .tools-list :global(.tool-status) {
-          font-size: 10px;
-          font-weight: 700;
-          padding: 3px 8px;
-          border-radius: 4px;
-          background: var(--green-soft);
           color: var(--green-deep);
+          font-weight: 600;
           text-transform: uppercase;
           letter-spacing: 0.06em;
-          flex-shrink: 0;
         }
-        .tools-list :global(.tool-status.coming-tag) {
-          background: var(--rule);
+        .tools-list :global(.tool-name.coming-soon) {
           color: var(--ink-4);
         }
+
         .tools-list :global(.tool-arrow) {
           font-family: 'DM Mono', monospace;
-          font-size: 18px;
+          font-size: 20px;
           color: var(--ink-4);
           transition: color 0.2s, transform 0.2s;
+          margin-top: auto;
+          align-self: flex-end;
         }
         .tools-list :global(.tool-row:hover .tool-arrow) {
           color: var(--green);
           transform: translateX(4px);
         }
-        @media (max-width: 480px) {
-          .tools-list :global(.tool-status) {
-            display: none;
+        @media (max-width: 720px) {
+          .tools-list :global(.tool-row) {
+            padding: 18px 18px;
+            min-height: auto;
+          }
+          .tools-list :global(.tool-icon) {
+            width: 48px;
+            height: 48px;
+            font-size: 26px;
+          }
+          .tools-list :global(.tool-question) {
+            font-size: 16px;
           }
         }
 
-        /* WHY */
+        /* WHY — full-bleed dark green */
         .why-section {
-          background: var(--bg-soft);
-          border-top: 1px solid var(--rule);
-          border-bottom: 1px solid var(--rule);
+          background: linear-gradient(180deg, var(--green-darker) 0%, var(--green-deep) 100%);
+          color: white;
+          padding: 96px 0;
+          position: relative;
+          overflow: hidden;
+        }
+        .why-section::before {
+          content: '';
+          position: absolute;
+          top: -200px;
+          right: -200px;
+          width: 600px;
+          height: 600px;
+          background: radial-gradient(circle, rgba(26, 107, 60, 0.4) 0%, transparent 70%);
+          pointer-events: none;
+        }
+        .why-section :global(.container) {
+          position: relative;
+          z-index: 1;
+        }
+        .why-section :global(.section-eyebrow) {
+          background: rgba(255, 255, 255, 0.12);
+          color: rgba(255, 255, 255, 0.95);
+        }
+        .why-section :global(.section-eyebrow .num) {
+          color: rgba(255, 255, 255, 0.7);
+        }
+        .why-section :global(.section-title) {
+          color: white;
+        }
+        .why-section :global(.section-title .accent) {
+          color: #6ec48b;
+        }
+        @media (max-width: 640px) {
+          .why-section {
+            padding: 64px 0;
+          }
         }
         .why-grid {
           display: grid;
@@ -1497,32 +1782,32 @@ export default function HomePage() {
         .why-statement {
           font-size: clamp(20px, 2.4vw, 26px);
           line-height: 1.35;
-          color: var(--ink);
+          color: white;
           font-weight: 500;
           margin-bottom: 20px;
           letter-spacing: -0.015em;
         }
         .why-statement strong {
-          color: var(--green-deep);
+          color: #6ec48b;
           font-weight: 600;
         }
         .why-statement .loss {
-          color: var(--red);
+          color: #ff7a6d;
           font-weight: 600;
         }
         .why-statement em {
           font-style: italic;
-          color: var(--green);
+          color: #6ec48b;
           font-weight: 500;
         }
         .why-prose {
           font-size: 15px;
-          color: var(--ink-3);
+          color: rgba(255, 255, 255, 0.75);
           line-height: 1.6;
         }
         .gap-coin {
-          background: var(--green);
-          color: white;
+          background: white;
+          color: var(--green-deep);
           padding: 2px 8px;
           border-radius: 4px;
           font-weight: 600;
@@ -1530,17 +1815,18 @@ export default function HomePage() {
           white-space: nowrap;
         }
         .why-math {
-          background: var(--bg);
-          border: 1px solid var(--rule);
+          background: rgba(255, 255, 255, 0.04);
+          border: 1px solid rgba(255, 255, 255, 0.15);
           border-radius: 14px;
           padding: 28px;
           font-family: 'DM Mono', monospace;
+          backdrop-filter: blur(10px);
         }
         .why-math-title {
           font-family: 'Sora', sans-serif;
           font-size: 11px;
           font-weight: 600;
-          color: var(--ink-3);
+          color: rgba(255, 255, 255, 0.6);
           text-transform: uppercase;
           letter-spacing: 0.1em;
           margin-bottom: 18px;
@@ -1552,7 +1838,7 @@ export default function HomePage() {
           content: '';
           width: 16px;
           height: 1px;
-          background: var(--green);
+          background: #6ec48b;
         }
         .math-row {
           display: flex;
@@ -1562,151 +1848,233 @@ export default function HomePage() {
           font-size: 14px;
         }
         .math-label {
-          color: var(--ink-3);
+          color: rgba(255, 255, 255, 0.65);
         }
         .math-val {
-          color: var(--ink);
+          color: white;
           font-weight: 500;
           font-size: 16px;
         }
         .math-val.minus {
-          color: var(--red);
+          color: #ff7a6d;
         }
         .math-line {
           height: 1px;
-          background: var(--rule);
+          background: rgba(255, 255, 255, 0.12);
           margin: 6px 0;
         }
         .math-final {
           margin-top: 8px;
           padding-top: 14px;
-          border-top: 2px solid var(--ink);
+          border-top: 2px solid rgba(255, 255, 255, 0.4);
         }
         .math-final .math-row {
           padding: 4px 0;
         }
         .math-final .math-val {
           font-size: 24px;
-          color: var(--red);
+          color: #ff7a6d;
         }
         .math-caption {
           margin-top: 18px;
           font-family: 'Sora', sans-serif;
           font-size: 13px;
-          color: var(--ink-3);
+          color: rgba(255, 255, 255, 0.6);
           line-height: 1.5;
           padding-top: 16px;
-          border-top: 1px solid var(--rule-soft);
+          border-top: 1px solid rgba(255, 255, 255, 0.12);
         }
 
-        /* TABLE */
-        .table-wrap {
+        /* SCORECARD (replaces flat table) */
+        .scorecard-list {
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+        }
+        .scorecard-row {
+          display: grid;
+          grid-template-columns: auto 1fr 140px 100px;
+          gap: 24px;
+          align-items: center;
+          padding: 18px 22px;
           background: var(--bg);
           border: 1px solid var(--rule);
           border-radius: 14px;
-          overflow: hidden;
+          transition: all 0.15s;
         }
-        .investment-table {
-          width: 100%;
-          border-collapse: collapse;
+        .scorecard-row:hover {
+          border-color: var(--green-soft);
+          background: var(--green-tint);
         }
-        .investment-table thead {
-          background: var(--bg-soft);
-          border-bottom: 1px solid var(--rule);
+        .scorecard-row.winner {
+          border-color: var(--green);
+          background: linear-gradient(90deg, var(--green-tint) 0%, white 60%);
+          box-shadow: 0 2px 0 rgba(26, 107, 60, 0.05);
         }
-        .investment-table th {
-          font-size: 11px;
-          font-weight: 600;
-          color: var(--ink-3);
-          text-transform: uppercase;
-          letter-spacing: 0.08em;
-          text-align: left;
-          padding: 14px 18px;
-        }
-        .investment-table th.num-col {
-          text-align: right;
-        }
-        .investment-table td {
-          padding: 14px 18px;
-          border-bottom: 1px solid var(--rule);
-          font-size: 14px;
-          color: var(--ink-2);
-        }
-        .investment-table tr:last-child td {
-          border-bottom: none;
-        }
-        .investment-table tr:hover td {
-          background: var(--bg-soft);
-        }
-        .investment-table .instrument {
-          font-weight: 600;
-          color: var(--ink);
+        .scorecard-instrument {
           display: flex;
           align-items: center;
-          gap: 10px;
+          gap: 12px;
+          min-width: 220px;
         }
-        .instrument-icon {
-          width: 28px;
-          height: 28px;
-          background: var(--green-soft);
-          border-radius: 6px;
+        .scorecard-icon {
+          width: 44px;
+          height: 44px;
+          background: var(--green-tint);
+          border: 1px solid var(--green-soft);
+          border-radius: 10px;
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 14px;
+          font-size: 20px;
           flex-shrink: 0;
         }
-        .investment-table td.num {
-          font-family: 'DM Mono', monospace;
-          font-weight: 500;
-          text-align: right;
-          font-size: 14px;
+        .scorecard-name {
+          font-size: 15px;
+          font-weight: 600;
+          color: var(--ink);
+          line-height: 1.3;
         }
-        .real-num.red {
+        .scorecard-best-for {
+          font-size: 12px;
+          color: var(--ink-3);
+          line-height: 1.4;
+          margin-top: 2px;
+        }
+        .scorecard-real {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+        .scorecard-real-num {
+          font-family: 'DM Mono', monospace;
+          font-size: 22px;
+          font-weight: 600;
+          line-height: 1;
+          letter-spacing: -0.02em;
+        }
+        .scorecard-real-num.red {
           color: var(--red);
         }
-        .real-num.green {
+        .scorecard-real-num.green {
           color: var(--green);
         }
-        .real-num.amber {
+        .scorecard-real-num.amber {
           color: var(--amber);
         }
-        .verdict {
+        .scorecard-real-bar {
+          width: 100%;
+          height: 6px;
+          background: var(--rule-soft);
+          border-radius: 3px;
+          position: relative;
+          overflow: hidden;
+        }
+        .scorecard-real-bar::after {
+          content: '';
+          position: absolute;
+          top: 0;
+          bottom: 0;
+          left: 50%;
+          width: 1px;
+          background: var(--ink-4);
+          opacity: 0.3;
+        }
+        .scorecard-real-fill {
+          position: absolute;
+          top: 0;
+          bottom: 0;
+          border-radius: 3px;
+        }
+        .scorecard-real-fill.negative {
+          right: 50%;
+          background: var(--red);
+        }
+        .scorecard-real-fill.positive {
+          left: 50%;
+          background: var(--green);
+        }
+        .scorecard-real-fill.positive.amber-fill {
+          background: var(--amber);
+        }
+        .scorecard-nominal {
+          font-family: 'DM Mono', monospace;
           font-size: 11px;
+          color: var(--ink-4);
+          margin-top: 4px;
+        }
+        .scorecard-verdict {
+          text-align: right;
+        }
+        .scorecard-verdict-pill {
+          font-size: 10px;
           font-weight: 700;
-          padding: 3px 8px;
-          border-radius: 4px;
+          padding: 5px 10px;
+          border-radius: 5px;
           text-transform: uppercase;
-          letter-spacing: 0.06em;
+          letter-spacing: 0.08em;
           display: inline-block;
         }
-        .verdict.lose {
+        .scorecard-verdict-pill.lose {
           background: var(--red-soft);
           color: var(--red);
         }
-        .verdict.modest {
+        .scorecard-verdict-pill.modest {
           background: var(--green-soft);
           color: var(--green-deep);
         }
-        .verdict.strong {
+        .scorecard-verdict-pill.strong {
           background: var(--green);
           color: white;
         }
-        .investment-table td.best-for {
-          font-size: 13px;
-          color: var(--ink-3);
-          line-height: 1.4;
-        }
-        @media (max-width: 800px) {
-          .investment-table {
-            font-size: 13px;
+        @media (max-width: 900px) {
+          .scorecard-row {
+            grid-template-areas:
+              'icon name verdict'
+              'real real real';
+            grid-template-columns: auto 1fr auto;
+            gap: 14px;
+            padding: 16px 16px;
           }
-          .investment-table th,
-          .investment-table td {
-            padding: 10px 12px;
-          }
-          .hide-mobile {
+          .scorecard-best-for {
             display: none;
+          }
+          .scorecard-instrument {
+            grid-area: name;
+            min-width: 0;
+            display: flex;
+            align-items: center;
+          }
+          .scorecard-instrument > :global(div:first-child) {
+            grid-area: icon;
+          }
+          .scorecard-real {
+            grid-area: real;
+            flex-direction: row;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding-top: 10px;
+            border-top: 1px dashed var(--rule);
+            margin-top: 4px;
+          }
+          .scorecard-real-bar {
+            flex: 1;
+            max-width: 140px;
+          }
+          .scorecard-icon {
+            width: 36px;
+            height: 36px;
+            font-size: 17px;
+          }
+          .scorecard-name {
+            font-size: 14px;
+          }
+          .scorecard-real-num {
+            font-size: 19px;
+          }
+          .scorecard-verdict {
+            grid-area: verdict;
           }
         }
         .table-footnote {
@@ -1981,48 +2349,30 @@ export default function HomePage() {
           margin-left: auto;
           margin-right: auto;
         }
-        .quick-starts {
-          display: flex;
-          gap: 10px;
-          justify-content: center;
-          flex-wrap: wrap;
-          margin-bottom: 18px;
-        }
-        .quick-starts :global(.quick-start-btn) {
-          background: rgba(255, 255, 255, 0.12);
-          border: 1px solid rgba(255, 255, 255, 0.2);
-          color: white;
-          padding: 11px 18px;
-          border-radius: 10px;
-          text-decoration: none;
-          font-size: 14px;
-          font-weight: 600;
+        :global(.final-cta-primary) {
           display: inline-flex;
           align-items: center;
-          gap: 6px;
-          transition: all 0.15s;
-          font-family: 'Sora', sans-serif;
-        }
-        .quick-starts :global(.quick-start-btn:hover) {
+          gap: 10px;
           background: white;
           color: var(--green-deep);
-          border-color: white;
-          transform: translateY(-1px);
-        }
-        .quick-starts :global(.amt) {
-          font-family: 'DM Mono', monospace;
-          font-weight: 500;
-        }
-        .final-cta-secondary {
-          margin-top: 6px;
-          font-size: 13px;
-          color: rgba(255, 255, 255, 0.7);
-        }
-        .final-cta-secondary :global(a) {
-          color: white;
+          padding: 14px 28px;
+          border-radius: 10px;
           text-decoration: none;
-          font-weight: 500;
-          border-bottom: 1px solid rgba(255, 255, 255, 0.4);
+          font-size: 15px;
+          font-weight: 600;
+          transition: transform 0.2s, box-shadow 0.2s;
+          box-shadow: 0 4px 12px -4px rgba(0, 0, 0, 0.2);
+        }
+        :global(.final-cta-primary:hover) {
+          transform: translateY(-2px);
+          box-shadow: 0 8px 16px -4px rgba(0, 0, 0, 0.25);
+        }
+        :global(.final-cta-primary span) {
+          font-family: 'DM Mono', monospace;
+          transition: transform 0.2s;
+        }
+        :global(.final-cta-primary:hover span) {
+          transform: translateX(3px);
         }
 
         /* FOOTER */
