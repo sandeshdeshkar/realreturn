@@ -898,6 +898,12 @@ export default function HomePage() {
           align-items: center;
           padding: 14px 0;
         }
+        @media (max-width: 720px) {
+          /* Nav links are hidden on mobile — center the logo so it doesn't feel stranded */
+          .nav-inner {
+            justify-content: center;
+          }
+        }
         .logo {
           display: inline-flex;
           align-items: center;
