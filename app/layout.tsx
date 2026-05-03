@@ -12,7 +12,7 @@ import './globals.css'
 
 const sora = Sora({
   subsets: ['latin'],
-  weight: ['300', '400', '500', '600', '700'],
+  weight: ['300', '400', '500', '600', '700', '800'],
   variable: '--font-sora',
   display: 'swap',
 })

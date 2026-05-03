@@ -189,12 +189,10 @@ export default function HomePage() {
         {/* ───────── NAV ───────── */}
         <nav>
           <div className="container nav-inner">
-            <Link href="/" className="logo">
-              <div className="logo-icon">📊</div>
-              <div className="logo-text">
-                <span className="logo-name">realreturn.in</span>
-                <span className="logo-tag">Real returns after tax &amp; inflation</span>
-              </div>
+            <Link href="/" className="logo" aria-label="realreturn.in home">
+              <span className="logo-wordmark">
+                <span className="logo-real">real</span>return<span className="logo-tld">.in</span>
+              </span>
             </Link>
             <div className="nav-links">
               <Link href="/personal-financial-planner">Financial Plan</Link>
@@ -796,12 +794,10 @@ export default function HomePage() {
           <div className="container">
             <div className="footer-grid">
               <div className="footer-brand">
-                <Link href="/" className="logo">
-                  <div className="logo-icon">📊</div>
-                  <div className="logo-text">
-                    <span className="logo-name">realreturn.in</span>
-                    <span className="logo-tag">Real returns after tax &amp; inflation</span>
-                  </div>
+                <Link href="/" className="logo" aria-label="realreturn.in home">
+                  <span className="logo-wordmark">
+                    <span className="logo-real">real</span>return<span className="logo-tld">.in</span>
+                  </span>
                 </Link>
                 <p className="footer-tagline" style={{ marginTop: '14px' }}>
                   Free tools for Indian personal finance.
@@ -903,47 +899,51 @@ export default function HomePage() {
           padding: 14px 0;
         }
         .logo {
-          display: flex;
+          display: inline-flex;
           align-items: center;
-          gap: 10px;
           text-decoration: none;
           color: var(--ink);
         }
-        .logo-icon {
-          width: 36px;
-          height: 36px;
+        .logo-wordmark {
+          font-family: 'Sora', sans-serif;
+          font-weight: 800;
+          font-size: 24px;
+          letter-spacing: -0.045em;
+          line-height: 1;
+          color: var(--ink);
+          position: relative;
+          display: inline-block;
+          padding-bottom: 6px;
+        }
+        .logo-wordmark::after {
+          content: '';
+          position: absolute;
+          bottom: 0;
+          left: 0;
+          /* Width of "real" portion ≈ 28% of the full wordmark */
+          width: 28%;
+          height: 3px;
           background: var(--green);
-          border-radius: 8px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: white;
-          font-size: 18px;
+          border-radius: 2px;
         }
-        .logo-text {
-          display: flex;
-          flex-direction: column;
-          line-height: 1.1;
+        .logo-real {
+          color: var(--green-deep);
         }
-        .logo-name {
-          font-weight: 600;
-          font-size: 16px;
-        }
-        .logo-tag {
-          font-size: 11px;
+        .logo-tld {
           color: var(--ink-3);
+          font-weight: 500;
+        }
+        /* Hover state — slight color shift on the underline */
+        .logo:hover .logo-wordmark::after {
+          background: var(--green-darker);
         }
         @media (max-width: 720px) {
-          .logo-icon {
-            width: 40px;
-            height: 40px;
-            font-size: 20px;
+          .logo-wordmark {
+            font-size: 22px;
+            padding-bottom: 5px;
           }
-          .logo-name {
-            font-size: 17px;
-          }
-          .logo-tag {
-            display: none;
+          .logo-wordmark::after {
+            height: 3px;
           }
         }
         .nav-links {
