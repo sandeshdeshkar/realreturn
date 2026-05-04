@@ -87,12 +87,38 @@ function toTodaysMoney(futureValue: number, inflationRate: number, years: number
   return futureValue / Math.pow(1 + inflationRate / 100, years)
 }
 
-// ── Real return using Fisher equation ─────────────────────────────────────
-function realReturn(postTaxNominalRate: number, inflationRate: number): number {
-  return ((1 + postTaxNominalRate / 100) / (1 + inflationRate / 100) - 1) * 100
+// ── Real return — PROJECT STANDARD (Option 1: effective tax rate from corpus) ──
+// See CLAUDE.md → "Real return — PROJECT STANDARD" for the rationale.
+//
+// 1. Compute corpus and tax using instrument-specific formulas (already done).
+// 2. Derive the EFFECTIVE post-tax growth rate from actual money flows:
+//      effectiveTaxRateOnGains = tax / gains
+//      postTaxRate = nominalRate * (1 - effectiveTaxRateOnGains)
+//    This correctly varies with gains size — small SIPs benefit more from
+//    the ₹1.25L LTCG exemption than large ones; FD has no exemption so its
+//    rate stays at nominalRate * (1 - taxSlab).
+// 3. Apply Fisher equation for real return.
+//
+// Verified results at the canonical 12% / 7% / 30% slab / 6% inflation:
+//   SIP real return ≈ +4.4%/yr (was +5.1% under the older non-standard formula)
+//   FD  real return ≈ −1.0%/yr (unchanged)
+function realReturnFromCorpus(
+  nominalCorpus: number,
+  totalInvested: number,
+  nominalRate: number,
+  taxPaid: number,
+  inflationRate: number,
+): number {
+  const gains = nominalCorpus - totalInvested
+  const effectiveTaxRateOnGains = gains > 0 ? taxPaid / gains : 0
+  const postTaxRate = nominalRate * (1 - effectiveTaxRateOnGains)
+  return ((1 + postTaxRate / 100) / (1 + inflationRate / 100) - 1) * 100
 }
 
-// ── Break-even year: first year SIP post-tax corpus > FD post-tax corpus ──
+// ── Break-even year: first year SIP nominal corpus > FD nominal corpus ──
+// At 12% SIP / 7% FD, SIP is ahead from year 1, so we return the first year
+// where SIP exceeds FD by a meaningful margin (>5%) — the year the gap
+// becomes practically visible.
 function findBreakEvenYear(inputs: CalcInputs): number {
   let fdWasAhead = false
   for (let y = 1; y <= inputs.durationYears; y++) {
@@ -101,8 +127,7 @@ function findBreakEvenYear(inputs: CalcInputs): number {
     if (fd > sip) fdWasAhead = true
     if (fdWasAhead && sip >= fd) return y
   }
-  // FD never led — SIP was ahead from start
-  // In this case find the year SIP first meaningfully exceeds FD by >5%
+  // FD never led — return the year SIP first leads by >5% (meaningful gap)
   for (let y = 1; y <= inputs.durationYears; y++) {
     const sip = calcSIPCorpus(inputs.monthlyAmount, inputs.sipCagr, y)
     const fd  = calcFDCorpus(inputs.monthlyAmount, inputs.fdRate, y)
@@ -151,20 +176,18 @@ export function calculate(inputs: CalcInputs): CalcResult {
   const totalInvested = monthlyAmount * 12 * durationYears
 
   // SIP
-  const sipNominal     = calcSIPCorpus(monthlyAmount, sipCagr, durationYears)
-  const sipTax         = calcSIPTax(sipNominal, totalInvested, ltcgRate, ltcgExemption)
-  const sipPostTax     = sipNominal - sipTax
-  const sipReal        = toTodaysMoney(sipPostTax, inflationRate, durationYears)
-  const sipPostTaxRate = sipCagr * (sipPostTax / sipNominal)
-  const sipRealPct     = realReturn(sipPostTaxRate, inflationRate)
+  const sipNominal = calcSIPCorpus(monthlyAmount, sipCagr, durationYears)
+  const sipTax     = calcSIPTax(sipNominal, totalInvested, ltcgRate, ltcgExemption)
+  const sipPostTax = sipNominal - sipTax
+  const sipReal    = toTodaysMoney(sipPostTax, inflationRate, durationYears)
+  const sipRealPct = realReturnFromCorpus(sipNominal, totalInvested, sipCagr, sipTax, inflationRate)
 
   // FD
-  const fdNominal     = calcFDCorpus(monthlyAmount, fdRate, durationYears)
-  const fdTax         = calcFDTax(fdNominal, totalInvested, taxSlab)
-  const fdPostTax     = fdNominal - fdTax
-  const fdReal        = toTodaysMoney(fdPostTax, inflationRate, durationYears)
-  const fdPostTaxRate = fdRate * (1 - taxSlab / 100)
-  const fdRealPct     = realReturn(fdPostTaxRate, inflationRate)
+  const fdNominal = calcFDCorpus(monthlyAmount, fdRate, durationYears)
+  const fdTax     = calcFDTax(fdNominal, totalInvested, taxSlab)
+  const fdPostTax = fdNominal - fdTax
+  const fdReal    = toTodaysMoney(fdPostTax, inflationRate, durationYears)
+  const fdRealPct = realReturnFromCorpus(fdNominal, totalInvested, fdRate, fdTax, inflationRate)
 
   const gap       = sipNominal - fdNominal
   const gapMonths = Math.round(gap / monthlyAmount)

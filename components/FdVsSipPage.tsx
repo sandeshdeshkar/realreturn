@@ -24,7 +24,7 @@ const TAX_DESCS = [
   'Income above ₹20L (new regime)',
 ]
 
-// ── Inline calculator ──────────────────────────────────────────────────────
+// ── Inline calculator (used in state 3 — customise) ──────────────────────
 function calcSIP(pmt: number, yrs: number): number {
   const n  = yrs * 12
   const mr = Math.pow(1.12, 1 / 12) - 1
@@ -39,11 +39,12 @@ function calcFD(pmt: number, yrs: number): number {
 }
 
 export default function FdVsSipPage({ config, result, breadcrumbs, related }: Props) {
-  // State machine: 1 = nominal, 2 = real return (with tax slider), 3 = customise
-  const [state,      setState]      = useState(1)
+  // State machine: 2 = real return (DEFAULT), 3 = customise
+  // (State 1 — the "TAP TO REVEAL" gate — removed. Real return now shown immediately
+  // so crawlers and LLMs see the differentiating numbers in initial HTML.)
+  const [state,      setState]      = useState(2)
   const [yearOpen,   setYearOpen]   = useState(false)
   const [editOpen,   setEditOpen]   = useState(false)
-  const [openFaq,    setOpenFaq]    = useState<number | null>(null)
   const [showToast,  setShowToast]  = useState(false)
 
   // Tax slider state (for state 2 real return)
@@ -83,20 +84,25 @@ export default function FdVsSipPage({ config, result, breadcrumbs, related }: Pr
   const fdBarWidth = Math.round((fd.nominalCorpus / sip.nominalCorpus) * 100)
 
   // ── Tax-slider derived values (state 2) ───────────────────────────────
+  // CHANGE: Use Option 1 real-return formula (effective tax rate from corpus)
+  // for slider-driven tax slab changes, matching the project standard.
   const sliderTax     = TAX_SLABS[taxIdx]
   const sliderFdGains = fd.nominalCorpus - sip.totalInvested
   const sliderFdTax   = sliderFdGains * (sliderTax / 100)
   const sliderFdPT    = fd.nominalCorpus - sliderFdTax
   const sliderFdReal  = sliderFdPT / Math.pow(1 + inputs.inflationRate / 100, inputs.durationYears)
-  const sliderSipPT   = sip.postTaxCorpus // SIP LTCG is fixed regardless of income tax slab
+  const sliderSipPT   = sip.postTaxCorpus // SIP LTCG fixed regardless of income tax slab
   const sliderSipReal = sip.realCorpus
   const sliderGap     = sliderSipPT - sliderFdPT
 
-  // Fisher equation real return % — matches live CalcResult
-  const sliderSipRealPct = ((1 + inputs.sipCagr * (sliderSipPT / sip.nominalCorpus) / 100) / (1 + inputs.inflationRate / 100) - 1) * 100
-  const sliderFdRealPct  = ((1 + inputs.fdRate * (1 - sliderTax / 100) / 100) / (1 + inputs.inflationRate / 100) - 1) * 100
+  // Real return % for slider — same Option 1 formula as the calculator lib
+  const sipGains          = sip.nominalCorpus - sip.totalInvested
+  const sipEffTaxRate     = sipGains > 0 ? sip.taxPaid / sipGains : 0
+  const sipPostTaxRatePct = inputs.sipCagr * (1 - sipEffTaxRate)
+  const sliderSipRealPct  = ((1 + sipPostTaxRatePct / 100) / (1 + inputs.inflationRate / 100) - 1) * 100
+  const sliderFdRealPct   = ((1 + (inputs.fdRate * (1 - sliderTax / 100)) / 100) / (1 + inputs.inflationRate / 100) - 1) * 100
 
-  // ── Live calculator values (state 3) ──────────────────────────────────
+  // ── Live calculator values (state 3) — uses Option 1 formula too ──────
   const liveInvested   = amount * 12 * duration
   const liveSipNom     = calcSIP(amount, duration)
   const liveFdNom      = calcFD(amount, duration)
@@ -119,10 +125,13 @@ export default function FdVsSipPage({ config, result, breadcrumbs, related }: Pr
   }, [amount, duration])
 
   // ── FAQs — use config override if set, else auto-generate from inputs ──
+  // CHANGE: When auto-generating FAQ #4 (year overtake), reword to be
+  // accurate at the standard 12%/7%/30% slab assumptions where SIP is
+  // actually ahead from year 1, not year 4.
   const faqs = config.faqs ?? [
     {
       q: `Is ₹${inputs.monthlyAmount.toLocaleString('en-IN')}/month SIP in Equity Mutual Funds better than Fixed Deposit (FD) for ${inputs.durationYears} years?`,
-      a: `Based on estimated returns, yes — at a ${inputs.taxSlab}% tax slab. At ${inputs.sipCagr}% CAGR, SIP gives ${sipNomL} vs FD's ${fdNomL} before tax. After tax and inflation, SIP's estimated real return is ${sipPct}/yr vs FD's ${fdPct}/yr. Use the tax slider in "Real Return" above to see your bracket.`,
+      a: `Based on estimated returns, yes — at a ${inputs.taxSlab}% tax slab. At ${inputs.sipCagr}% CAGR, SIP gives ${sipNomL} vs FD's ${fdNomL} before tax. After tax and inflation, SIP's estimated real return is ${sipPct}/yr vs FD's ${fdPct}/yr. Use the tax slider above to see your bracket.`,
     },
     {
       q: `What is ₹${inputs.monthlyAmount.toLocaleString('en-IN')}/month SIP worth after ${inputs.durationYears} years?`,
@@ -134,7 +143,7 @@ export default function FdVsSipPage({ config, result, breadcrumbs, related }: Pr
     },
     {
       q: `In which year does SIP overtake Fixed Deposit (FD) for ₹${inputs.monthlyAmount.toLocaleString('en-IN')}/month?`,
-      a: `At assumed returns of ${inputs.sipCagr}% for SIP and ${inputs.fdRate}% for FD, SIP overtakes Fixed Deposit around year 4. Before that, FD's guaranteed compounding keeps it ahead. After year 4, the gap reaches ${gapL} by year ${inputs.durationYears}.`,
+      a: `At ${inputs.sipCagr}% SIP and ${inputs.fdRate}% FD, SIP edges ahead from year 1, but the lead is small in early years. The gap accelerates after year 5 and reaches ${gapL} by year ${inputs.durationYears}. If you assume more conservative SIP returns (9–10%) or higher FD rates (8%+), FD can stay ahead through year 4 or 5.`,
     },
     {
       q: `Is SIP in Equity Mutual Funds safe? What if markets crash?`,
@@ -152,9 +161,7 @@ export default function FdVsSipPage({ config, result, breadcrumbs, related }: Pr
         .pw { max-width: 1160px; margin: 0 auto; padding: 0 24px; box-sizing: border-box; }
         .tc { display: grid; grid-template-columns: 320px 1fr; gap: 28px; align-items: start; width: 100%; }
         .lc { position: sticky; top: 70px; }
-        /* Desktop sidebar — hidden on mobile */
         .dt-sidebar { display: none; }
-        /* Mobile sections — shown on mobile, hidden on desktop */
         .mob-only { display: block; }
         @media (min-width: 900px) {
           .tc { grid-template-columns: 320px 1fr 260px; }
@@ -166,6 +173,10 @@ export default function FdVsSipPage({ config, result, breadcrumbs, related }: Pr
           .lc { position: static; }
           .pw { padding: 0 16px; }
         }
+        details.faq-item > summary { list-style: none; cursor: pointer; }
+        details.faq-item > summary::-webkit-details-marker { display: none; }
+        details.faq-item > summary .faq-toggle::before { content: '+'; }
+        details.faq-item[open] > summary .faq-toggle::before { content: '−'; }
       `}</style>
 
       {/* Share toast */}
@@ -181,7 +192,7 @@ export default function FdVsSipPage({ config, result, breadcrumbs, related }: Pr
 
       <div style={{ fontFamily: "'Sora', sans-serif", color: '#111827', fontSize: 14, lineHeight: 1.6, minHeight: '100vh' }}>
 
-        {/* NAV — CHANGE: link updated to /fd-vs-sip */}
+        {/* NAV */}
         <nav style={{ background: '#fff', borderBottom: '1px solid #e5e7eb', height: 54, display: 'flex', alignItems: 'center', position: 'sticky', top: 0, zIndex: 99 }}>
           <div className="pw" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
             <Link href="/" style={{ fontWeight: 600, fontSize: 15, color: '#1a6b3c', letterSpacing: '-.3px', textDecoration: 'none' }}>
@@ -209,14 +220,12 @@ export default function FdVsSipPage({ config, result, breadcrumbs, related }: Pr
           </div>
         </div>
 
-        {/* HERO — CHANGE: eyebrow with full terms */}
+        {/* HERO */}
         <div style={{ background: '#0f3d22', padding: '24px 0 20px' }}>
           <div className="pw">
-            {/* CHANGE: full terms in eyebrow */}
             <div style={{ fontSize: 11, fontWeight: 500, letterSpacing: '.07em', textTransform: 'uppercase', color: 'rgba(255,255,255,.4)', marginBottom: 6 }}>
               Fixed Deposit (FD) vs SIP in Equity Mutual Funds
             </div>
-            {/* H1: same as before — short, clean */}
             <h1 style={{ fontSize: 24, fontWeight: 600, color: '#fff', lineHeight: 1.2, letterSpacing: '-.3px', margin: 0 }}>
               {config.h1}
             </h1>
@@ -230,100 +239,22 @@ export default function FdVsSipPage({ config, result, breadcrumbs, related }: Pr
             {/* ── LEFT COLUMN ── */}
             <div className="lc">
 
-              {/* Back nav */}
-              {state > 1 && (
+              {/* Back nav — only when in customise state */}
+              {state === 3 && (
                 <button
-                  onClick={() => setState(s => s - 1)}
+                  onClick={() => setState(2)}
                   style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%', background: '#f9fafb', border: '1px solid #e5e7eb', borderBottom: 'none', borderRadius: '10px 10px 0 0', padding: '8px 14px', fontSize: 11, color: '#6b7280', cursor: 'pointer', fontFamily: "'Sora', sans-serif", fontWeight: 500 }}
                 >
                   ← Back
                 </button>
               )}
 
-              <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: state > 1 ? '0 0 10px 10px' : 10, overflow: 'hidden' }}>
+              <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: state === 3 ? '0 0 10px 10px' : 10, overflow: 'hidden' }}>
 
-                {/* ══ STATE 1: NOMINAL ══ */}
-                {state === 1 && (
-                  <>
-                    <div style={{ background: '#0f3d22', padding: '16px 18px' }}>
-                      <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '.05em', textTransform: 'uppercase', color: 'rgba(255,255,255,.6)', marginBottom: 4 }}>
-                        SIP returns more by
-                      </div>
-                      <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 32, fontWeight: 500, color: '#fff', lineHeight: 1, marginBottom: 6 }}>
-                        {gapL}
-                      </div>
-                      <div style={{ fontSize: 12, color: 'rgba(255,255,255,.7)' }}>
-                        on {investedL} invested over {inputs.durationYears} years
-                      </div>
-                    </div>
-
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1, background: '#e5e7eb' }}>
-                      {[
-                        { name: 'SIP', val: sipNomL, win: true },
-                        { name: 'FD',  val: fdNomL,  win: false },
-                      ].map(chip => (
-                        <div key={chip.name} style={{ background: '#fff', padding: '14px 16px' }}>
-                          <div style={{ fontSize: 10, fontWeight: 700, color: '#9ca3af', letterSpacing: '.06em', textTransform: 'uppercase', marginBottom: 4 }}>{chip.name}</div>
-                          <div style={{ fontSize: 10, color: '#9ca3af', marginBottom: 3 }}>You get</div>
-                          <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 22, fontWeight: 500, color: chip.win ? '#1a6b3c' : '#374151' }}>
-                            {chip.val}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-
-                    <button
-                      onClick={() => setState(2)}
-                      style={{
-                        display: 'block', width: '100%', border: 'none',
-                        borderTop: '3px solid #4ade80',
-                        background: '#0f3d22', color: '#fff',
-                        padding: '20px 20px',
-                        fontFamily: "'Sora', sans-serif", fontSize: 16, fontWeight: 700,
-                        cursor: 'pointer', textAlign: 'center',
-                        WebkitTapHighlightColor: 'rgba(74,222,128,.2)',
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-                        <span>🔓</span>
-                        <span>But what's the Real Return?</span>
-                        <span style={{ color: '#4ade80', fontSize: 20 }}>↓</span>
-                      </div>
-                      <div style={{ fontSize: 11, fontWeight: 400, color: 'rgba(255,255,255,.6)', marginTop: 6 }}>
-                        Tap to see after tax &amp; inflation — most people don't know this number
-                      </div>
-                      <div style={{ marginTop: 8, display: 'flex', justifyContent: 'center' }}>
-                        <span style={{ background: '#4ade80', color: '#0f3d22', fontSize: 11, fontWeight: 700, padding: '4px 14px', borderRadius: 20, letterSpacing: '.03em' }}>
-                          TAP TO REVEAL
-                        </span>
-                      </div>
-                    </button>
-                  </>
-                )}
-
-                {/* ══ STATE 2: REAL RETURN with tax slider ══ */}
+                {/* ══ STATE 2: REAL RETURN — DEFAULT VIEW ══ */}
                 {state === 2 && (
                   <>
-                    {/* CHANGE: Tax slider section */}
-                    <div style={{ padding: '14px 16px', background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                        <span style={{ fontSize: 12, fontWeight: 600, color: '#374151' }}>Income tax slab</span>
-                        <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 13, fontWeight: 700, color: '#1a6b3c', background: '#f0fdf4', border: '1.5px solid #bbf7d0', borderRadius: 5, padding: '2px 8px' }}>
-                          {sliderTax}%
-                        </span>
-                      </div>
-                      <input
-                        type="range" min={0} max={5} step={1} value={taxIdx}
-                        onChange={e => setTaxIdx(parseInt(e.target.value))}
-                        style={{ width: '100%', accentColor: '#1a6b3c', cursor: 'pointer' }}
-                      />
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: '#9ca3af', marginTop: 3, fontFamily: "'DM Mono', monospace" }}>
-                        {TAX_SLABS.map(s => <span key={s}>{s}%</span>)}
-                      </div>
-                      <div style={{ fontSize: 11, color: '#6b7280', marginTop: 5 }}>{TAX_DESCS[taxIdx]}</div>
-                    </div>
-
-                    {/* Real return header */}
+                    {/* Real return header — MOVED TO TOP, shown immediately */}
                     <div style={{ background: '#1a6b3c', padding: '14px 18px' }}>
                       <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'rgba(255,255,255,.15)', borderRadius: 4, padding: '2px 8px', fontSize: 9, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: 'rgba(255,255,255,.9)', marginBottom: 6 }}>
                         ✦ Real Return
@@ -336,7 +267,7 @@ export default function FdVsSipPage({ config, result, breadcrumbs, related }: Pr
                       </div>
                     </div>
 
-                    {/* EXACT LIVE: Two rows — SIP then FD, each with 3 boxes */}
+                    {/* SIP / FD breakdown — visible immediately */}
                     <div style={{ background: '#fff' }}>
                       {[
                         {
@@ -394,11 +325,30 @@ export default function FdVsSipPage({ config, result, breadcrumbs, related }: Pr
                       ))}
                     </div>
 
+                    {/* Tax slider — MOVED BELOW NUMBERS, less prominent */}
+                    <div style={{ padding: '14px 16px', background: '#f9fafb', borderTop: '1px solid #e5e7eb' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                        <span style={{ fontSize: 12, fontWeight: 600, color: '#374151' }}>Adjust tax slab</span>
+                        <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 13, fontWeight: 700, color: '#1a6b3c', background: '#f0fdf4', border: '1.5px solid #bbf7d0', borderRadius: 5, padding: '2px 8px' }}>
+                          {sliderTax}%
+                        </span>
+                      </div>
+                      <input
+                        type="range" min={0} max={5} step={1} value={taxIdx}
+                        onChange={e => setTaxIdx(parseInt(e.target.value))}
+                        style={{ width: '100%', accentColor: '#1a6b3c', cursor: 'pointer' }}
+                      />
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: '#9ca3af', marginTop: 3, fontFamily: "'DM Mono', monospace" }}>
+                        {TAX_SLABS.map(s => <span key={s}>{s}%</span>)}
+                      </div>
+                      <div style={{ fontSize: 11, color: '#6b7280', marginTop: 5 }}>{TAX_DESCS[taxIdx]}</div>
+                    </div>
+
                     {/* Insight */}
                     <div style={{ padding: '10px 14px', background: '#f0fdf4', borderTop: '1px solid #bbf7d0' }}>
                       <p style={{ fontSize: 11, color: '#166534', margin: 0, lineHeight: 1.55 }}>
                         {sliderFdRealPct < 0
-                          ? <>Your FD is <strong>losing to inflation</strong>. {fmtL(sliderFdPT)} after tax buys only {fmtL(sliderFdReal)} worth in {inputs.durationYears} years.</>
+                          ? <>Your FD is <strong>losing to inflation</strong>. After investing {investedL}, your FD ends up worth only {fmtL(sliderFdReal)} in today&apos;s purchasing power — a real-terms loss.</>
                           : <>After inflation, FD gives just {fmtPct(sliderFdRealPct)}/yr. SIP gives {fmtPct(sliderSipRealPct)}/yr — a {fmtPct(sliderSipRealPct - sliderFdRealPct)} difference annually.</>
                         }
                       </p>
@@ -414,7 +364,7 @@ export default function FdVsSipPage({ config, result, breadcrumbs, related }: Pr
                       </div>
                     </div>
 
-                    {/* CHANGE: "Adjust inputs" → "FD vs SIP Calculator" */}
+                    {/* CTAs */}
                     <div style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 8, borderTop: '1px solid #e5e7eb' }}>
                       <Link href="/fd-vs-sip" style={{
                         display: 'block', width: '100%', background: '#1a6b3c', color: '#fff',
@@ -557,6 +507,22 @@ export default function FdVsSipPage({ config, result, breadcrumbs, related }: Pr
 
               </div>
 
+              {/* "Customise" entry — replaces the old TAP TO REVEAL gate */}
+              {state === 2 && (
+                <button
+                  onClick={() => setState(3)}
+                  style={{
+                    display: 'block', width: '100%', marginTop: 12,
+                    background: '#fff', border: '1px solid #e5e7eb', borderRadius: 10,
+                    padding: '12px 16px',
+                    fontFamily: "'Sora', sans-serif", fontSize: 13, fontWeight: 600,
+                    color: '#1a6b3c', cursor: 'pointer', textAlign: 'center',
+                  }}
+                >
+                  Customise inputs →
+                </button>
+              )}
+
               {/* Assumptions card — always visible below left card */}
               <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 10, padding: '14px 16px', marginTop: 12 }}>
                 <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '.05em', textTransform: 'uppercase', color: '#9ca3af', marginBottom: 10 }}>Assumptions</div>
@@ -581,16 +547,18 @@ export default function FdVsSipPage({ config, result, breadcrumbs, related }: Pr
             {/* ── RIGHT COLUMN ── */}
             <div>
 
-              {/* CHANGE: E-E-A-T strip */}
+              {/* E-E-A-T strip */}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 0 14px', borderBottom: '1px solid #e5e7eb', marginBottom: 4, flexWrap: 'wrap', gap: 4 }}>
                 <span style={{ fontSize: 11, fontWeight: 700, color: '#111827' }}>realreturn.in · See what your money actually earns</span>
                 <span style={{ fontSize: 10, color: '#6b7280' }}>Estimates only · Not financial advice · Based on current Indian tax laws</span>
               </div>
 
-              {/* AEO block — CHANGE: full terms */}
+              {/* AEO block — H2 reworded as natural-language question */}
               <div style={{ ...sec, paddingTop: 0 }}>
+                <h2 style={{ fontSize: 16, fontWeight: 600, color: '#111827', margin: '0 0 10px' }}>
+                  How much does ₹{inputs.monthlyAmount.toLocaleString('en-IN')}/month SIP vs FD give in {inputs.durationYears} years?
+                </h2>
                 <div style={{ borderLeft: '3px solid #d97706', padding: '12px 14px', background: '#fffbeb', borderRadius: '0 8px 8px 0' }}>
-                  <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '.07em', textTransform: 'uppercase', color: '#d97706', marginBottom: 5 }}>In plain numbers</div>
                   <p style={{ fontSize: 13, color: '#374151', lineHeight: 2, margin: 0 }}>
                     ₹{inputs.monthlyAmount.toLocaleString('en-IN')}/month in SIP (Equity Mutual Funds) for {inputs.durationYears} years → <strong>{sipNomL}</strong> before tax<br />
                     ₹{inputs.monthlyAmount.toLocaleString('en-IN')}/month in Fixed Deposit (FD) for {inputs.durationYears} years → <strong>{fdNomL}</strong> before tax<br />
@@ -599,27 +567,29 @@ export default function FdVsSipPage({ config, result, breadcrumbs, related }: Pr
                 </div>
               </div>
 
-              {/* Break-even insight — uses config override if set, else generic */}
+              {/* Break-even insight — config override OR reworded default */}
               <div style={sec}>
                 <div style={{ background: '#fff8f0', border: '1px solid #fed7aa', borderRadius: 10, padding: '14px 16px' }}>
                   <span style={{ fontSize: 18, display: 'block', marginBottom: 5 }}>💡</span>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: '#92400e', marginBottom: 4 }}>
+                  <h2 style={{ fontSize: 14, fontWeight: 700, color: '#92400e', margin: '0 0 4px' }}>
                     {config.breakEvenInsight?.title ?? 'When does SIP overtake Fixed Deposit?'}
-                  </div>
+                  </h2>
                   {config.breakEvenInsight ? (
                     <div style={{ fontSize: 12, color: '#7c3100', lineHeight: 1.65 }}
                       dangerouslySetInnerHTML={{ __html: config.breakEvenInsight.body }} />
                   ) : (
                     <div style={{ fontSize: 12, color: '#7c3100', lineHeight: 1.65 }}>
-                      At assumed returns of <strong>{inputs.sipCagr}% for SIP</strong> and <strong>{inputs.fdRate}% for FD</strong>, SIP overtakes Fixed Deposit around <strong>year 4</strong>. Before that, FD's guaranteed compounding keeps it ahead. After year 4, the gap widens to <strong>{gapL} by year {inputs.durationYears}</strong>. At 0% tax, the break-even shifts to around year 6. Use the tax slider above to see your bracket.
+                      At assumed returns of <strong>{inputs.sipCagr}% for SIP</strong> and <strong>{inputs.fdRate}% for FD</strong>, SIP edges ahead from year 1 — but the lead is small in early years (a few thousand rupees in year 1, around ₹50,000 by year 4). The gap accelerates after year 5 and reaches <strong>{gapL} by year {inputs.durationYears}</strong>. If you assume more conservative SIP returns (9–10%) or higher FD rates (8%+), FD can stay ahead through year 4 or 5. Use the tax slider above to see your bracket.
                     </div>
                   )}
                 </div>
               </div>
 
-              {/* What's the difference */}
+              {/* What's the difference — H2 reworded */}
               <div style={sec}>
-                <div style={lbl}>What's the difference?</div>
+                <h2 style={{ fontSize: 16, fontWeight: 600, color: '#111827', margin: '0 0 10px' }}>
+                  How big is the gap between SIP and FD after {inputs.durationYears} years?
+                </h2>
                 <p style={{ fontSize: 13, color: '#6b7280', marginBottom: 14 }}>
                   Both invest <strong style={{ color: '#111827' }}>{investedL}</strong> over {inputs.durationYears} years. SIP returns <strong style={{ color: '#111827' }}>{gapL} more.</strong>
                 </p>
@@ -650,13 +620,15 @@ export default function FdVsSipPage({ config, result, breadcrumbs, related }: Pr
                 </div>
               </div>
 
-              {/* Why SIP wins — CHANGE: full terms at first mention */}
+              {/* Why SIP wins — H2 reworded; reword "₹X buys only ₹Y" line */}
               <div style={sec}>
-                <div style={lbl}>Why does SIP in Equity Mutual Funds come out ahead?</div>
+                <h2 style={{ fontSize: 16, fontWeight: 600, color: '#111827', margin: '0 0 12px' }}>
+                  Why does SIP beat FD over {inputs.durationYears} years?
+                </h2>
                 {[
                   { icon: '📈', bg: '#f0fdf4', title: `Grows faster — ${inputs.sipCagr}% vs ${inputs.fdRate}% per year`, text: `That ${(inputs.sipCagr - inputs.fdRate).toFixed(0)}% annual difference compounds over ${inputs.durationYears} years into ${gapL} extra on ₹${inputs.monthlyAmount.toLocaleString('en-IN')}/month.` },
                   { icon: '🧾', bg: '#fffbeb', title: `${taxSavingL} less tax`, text: `FD interest taxed at ${inputs.taxSlab}% like salary = ${fdTaxL} tax. SIP gains taxed at 12.5% above ₹1.25L = ${sipTaxL} tax. That ${taxSavingL} saving exists before counting higher returns.` },
-                  { icon: '🔥', bg: '#fff1f2', title: `Fixed Deposit barely beats ${inputs.inflationRate}% inflation`, text: `${inputs.fdRate}% FD minus ${inputs.taxSlab}% tax = ${(inputs.fdRate * (1 - inputs.taxSlab / 100)).toFixed(1)}% post-tax. Minus ${inputs.inflationRate}% inflation = ${fdPct}/yr real. Your ${investedL} buys only ${fdRealL} in today's money after ${inputs.durationYears} years.` },
+                  { icon: '🔥', bg: '#fff1f2', title: `Fixed Deposit barely beats ${inputs.inflationRate}% inflation`, text: `${inputs.fdRate}% FD minus ${inputs.taxSlab}% tax = ${(inputs.fdRate * (1 - inputs.taxSlab / 100)).toFixed(1)}% post-tax. Minus ${inputs.inflationRate}% inflation = ${fdPct}/yr real. After investing ${investedL}, your FD ends up worth only ${fdRealL} in today's purchasing power — a real-terms loss.` },
                 ].map(r => (
                   <div key={r.title} style={{ display: 'flex', gap: 12, padding: '12px 0', borderBottom: '1px solid #f3f4f6', alignItems: 'flex-start' }}>
                     <div style={{ width: 32, height: 32, borderRadius: 8, background: r.bg, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15 }}>{r.icon}</div>
@@ -668,9 +640,11 @@ export default function FdVsSipPage({ config, result, breadcrumbs, related }: Pr
                 ))}
               </div>
 
-              {/* When FD wins — CHANGE: full terms */}
+              {/* When FD wins — H2 reworded */}
               <div style={sec}>
-                <div style={lbl}>When is Fixed Deposit (FD) the better choice?</div>
+                <h2 style={{ fontSize: 16, fontWeight: 600, color: '#111827', margin: '0 0 10px' }}>
+                  When is FD a better choice than SIP?
+                </h2>
                 <p style={{ fontSize: 13, color: '#6b7280', marginBottom: 12 }}>
                   {config.whenFdWinsIntro ?? 'SIP wins here — but Fixed Deposit is better if:'}
                 </p>
@@ -689,9 +663,11 @@ export default function FdVsSipPage({ config, result, breadcrumbs, related }: Pr
                 </div>
               </div>
 
-              {/* Full comparison table */}
+              {/* Full comparison table — H2 reworded; "After inflation" → "In today's purchasing power" */}
               <div style={sec}>
-                <div style={lbl}>The full picture</div>
+                <h2 style={{ fontSize: 16, fontWeight: 600, color: '#111827', margin: '0 0 10px' }}>
+                  Full SIP vs FD comparison table
+                </h2>
                 <div style={{ overflowX: 'auto', background: '#fff', border: '1px solid #e5e7eb', borderRadius: 10 }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                     <thead>
@@ -703,16 +679,16 @@ export default function FdVsSipPage({ config, result, breadcrumbs, related }: Pr
                     </thead>
                     <tbody>
                       {[
-                        { label: 'Before tax corpus',                            sip: sipNomL,              fd: fdNomL,              sipWin: true  },
-                        { label: 'Total invested',                                sip: investedL,            fd: investedL,           sipWin: false },
-                        { label: 'Annual return rate',                            sip: `${inputs.sipCagr}%`, fd: `${inputs.fdRate}%`, sipWin: true  },
-                        { label: 'Tax paid',                                      sip: sipTaxL,              fd: fdTaxL,              sipWin: true  },
-                        { label: 'After-tax corpus',                              sip: sipL,                 fd: fdL,                 sipWin: true  },
-                        { label: `After inflation (${inputs.inflationRate}%)`,    sip: sipRealL,             fd: fdRealL,             sipWin: true  },
-                        { label: 'Real return/yr',                                sip: sipPct,               fd: fdPct,               sipWin: true  },
-                        { label: 'Guaranteed?',                                   sip: '✗ No',               fd: '✓ Yes',             sipWin: false },
-                        { label: 'Withdraw anytime?',                             sip: '✓ Yes',              fd: 'Penalty',           sipWin: true  },
-                        { label: 'Tax efficient?',                                sip: '✓ Yes',              fd: '✗ No',              sipWin: true  },
+                        { label: 'Before tax corpus',           sip: sipNomL,              fd: fdNomL,              sipWin: true  },
+                        { label: 'Total invested',              sip: investedL,            fd: investedL,           sipWin: false },
+                        { label: 'Annual return rate',          sip: `${inputs.sipCagr}%`, fd: `${inputs.fdRate}%`, sipWin: true  },
+                        { label: 'Tax paid',                    sip: sipTaxL,              fd: fdTaxL,              sipWin: true  },
+                        { label: 'After-tax corpus',            sip: sipL,                 fd: fdL,                 sipWin: true  },
+                        { label: `In today's purchasing power`, sip: sipRealL,             fd: fdRealL,             sipWin: true  },
+                        { label: 'Real return/yr',              sip: sipPct,               fd: fdPct,               sipWin: true  },
+                        { label: 'Guaranteed?',                 sip: '✗ No',               fd: '✓ Yes',             sipWin: false },
+                        { label: 'Withdraw anytime?',           sip: '✓ Yes',              fd: 'Penalty',           sipWin: true  },
+                        { label: 'Tax efficient?',              sip: '✓ Yes',              fd: '✗ No',              sipWin: true  },
                       ].map((row, i) => (
                         <tr key={i} style={{ background: i % 2 === 0 ? '#fff' : '#f9fafb' }}>
                           <td style={{ padding: '9px 14px', borderBottom: '1px solid #f3f4f6', fontSize: 13, color: '#374151' }}>{row.label}</td>
@@ -767,9 +743,9 @@ export default function FdVsSipPage({ config, result, breadcrumbs, related }: Pr
                 {editOpen && (
                   <div style={{ marginTop: 16 }}>
                     {(config.editorialSections ?? [
-                      { h: `Why ${inputs.durationYears} years tips the balance toward SIP`, p: `In the first 1–3 years, FD and SIP give similar results. From year 4 onwards, SIP's compounding takes over. The longer the horizon, the bigger the gap.` },
+                      { h: `Why ${inputs.durationYears} years tips the balance toward SIP`, p: `In the first 1–3 years, FD and SIP give similar results. From year 5 onwards, SIP's compounding takes over. The longer the horizon, the bigger the gap.` },
                       { h: 'How income tax quietly kills FD returns', p: `In the ${inputs.taxSlab}% bracket, ${inputs.taxSlab} paise of every rupee of FD interest goes to tax. Over ${inputs.durationYears} years that's ${fdTaxL}. SIP profits are taxed at only 12.5% above ₹1.25L — just ${sipTaxL} total.` },
-                      { h: `Why FD loses to ${inputs.inflationRate}% inflation`, p: `FD earns ${inputs.fdRate}%. After ${inputs.taxSlab}% tax: ${(inputs.fdRate * (1 - inputs.taxSlab / 100)).toFixed(1)}%. Minus ${inputs.inflationRate}% inflation: ${fdPct}/year real. Your ${investedL} today only buys ${fdRealL} worth in ${inputs.durationYears} years.` },
+                      { h: `Why FD loses to ${inputs.inflationRate}% inflation`, p: `FD earns ${inputs.fdRate}%. After ${inputs.taxSlab}% tax: ${(inputs.fdRate * (1 - inputs.taxSlab / 100)).toFixed(1)}%. Minus ${inputs.inflationRate}% inflation: ${fdPct}/year real. After investing ${investedL}, your FD ends up worth only ${fdRealL} in today's purchasing power.` },
                       { h: 'The smart middle path', p: `Most planners suggest splitting: 70% in SIP for long-term growth, 30% in FD for safety. SIP builds wealth. FD keeps a guaranteed buffer for near-term needs.` },
                     ]).map(s => (
                       <div key={s.h}>
@@ -781,24 +757,31 @@ export default function FdVsSipPage({ config, result, breadcrumbs, related }: Pr
                 )}
               </div>
 
-              {/* FAQ — CHANGE: scenario-specific questions with full terms */}
+              {/* FAQ — native <details> tags so answers are in initial HTML for crawlers/LLMs */}
               <div style={{ ...sec, borderBottom: 'none' }}>
-                <div style={lbl}>Common questions</div>
+                <h2 style={{ fontSize: 16, fontWeight: 600, color: '#111827', margin: '0 0 10px' }}>
+                  Common questions
+                </h2>
                 {faqs.map((faq, i) => (
-                  <div key={i} style={{ borderBottom: i < faqs.length - 1 ? '1px solid #f3f4f6' : 'none' }}>
-                    <button onClick={() => setOpenFaq(openFaq === i ? null : i)} style={{ width: '100%', background: 'none', border: 'none', padding: '12px 0', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, textAlign: 'left' }}>
+                  <details
+                    key={i}
+                    className="faq-item"
+                    style={{ borderBottom: i < faqs.length - 1 ? '1px solid #f3f4f6' : 'none' }}
+                  >
+                    <summary style={{ padding: '12px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
                       <span style={{ fontSize: 13, fontWeight: 500, color: '#111827', lineHeight: 1.4, fontFamily: "'Sora', sans-serif" }}>{faq.q}</span>
-                      <span style={{ color: '#9ca3af', fontSize: 18, flexShrink: 0 }}>{openFaq === i ? '−' : '+'}</span>
-                    </button>
-                    {openFaq === i && <div style={{ paddingBottom: 12, fontSize: 13, color: '#4b5563', lineHeight: 1.7 }}>{faq.a}</div>}
-                  </div>
+                      <span className="faq-toggle" style={{ color: '#9ca3af', fontSize: 18, flexShrink: 0 }} />
+                    </summary>
+                    <div style={{ paddingBottom: 12, fontSize: 13, color: '#4b5563', lineHeight: 1.7 }}>{faq.a}</div>
+                  </details>
                 ))}
               </div>
 
               {/* Try other combinations — mobile only */}
-              {/* Fixed list of 4. If the page is live (in related), shows corpus numbers + live link. Otherwise "Coming soon". */}
               <div className="mob-only" style={{ paddingTop: 20, borderTop: '1px solid #e5e7eb', marginTop: 4 }}>
-                <div style={lbl}>Try other combinations</div>
+                <h2 style={{ fontSize: 16, fontWeight: 600, color: '#111827', margin: '0 0 10px' }}>
+                  Compare other SIP amounts and durations
+                </h2>
                 {(() => {
                   const combos = [
                     { slug: '5000-per-month/10-years',   label: '₹5,000/month · 10 years'  },
@@ -834,9 +817,9 @@ export default function FdVsSipPage({ config, result, breadcrumbs, related }: Pr
                 })()}
               </div>
 
-              {/* CHANGE: Related tools — mobile only */}
+              {/* Related tools — mobile only */}
               <div className="mob-only" style={{ paddingTop: 20, borderTop: '1px solid #e5e7eb', marginTop: 4 }}>
-                <div style={lbl}>Related tools</div>
+                <h2 style={{ fontSize: 16, fontWeight: 600, color: '#111827', margin: '0 0 10px' }}>Related tools</h2>
                 <div style={{ border: '1px solid #e5e7eb', borderRadius: 10, overflow: 'hidden', background: '#fff' }}>
                   {[
                     { href: '/fd-vs-rd-vs-mf-returns-calculator', label: 'FD vs RD vs MF Returns Calculator' },

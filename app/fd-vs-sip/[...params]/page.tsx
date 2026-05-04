@@ -114,11 +114,51 @@ function deriveTag(currentSlug: string[], targetSlug: string[]): string {
   return 'Similar'
 }
 
+// ── FAQPage schema — must mirror the on-page FAQs ──
+// Source: components/FdVsSipPage.tsx → faqs array (which falls back to
+// auto-generated when config.faqs is not set). Keeping schema in sync
+// with visible FAQs is a Google requirement for FAQ rich results.
+//
+// If a config defines its own faqs[], those are used. Otherwise the same
+// 5 auto-generated questions appear here as on-page.
 function buildSchemas(config: any, result: any, slugStr: string) {
-  const url  = `https://www.realreturn.in/fd-vs-sip/${slugStr}`
-  const sipL = fmtL(result.sip.postTaxCorpus)
-  const fdL  = fmtL(result.fd.postTaxCorpus)
-  const { durationYears, fdRate, sipCagr, taxSlab, inflationRate } = config.inputs
+  const url     = `https://www.realreturn.in/fd-vs-sip/${slugStr}`
+  const sipNomL = fmtL(result.sip.nominalCorpus)
+  const fdNomL  = fmtL(result.fd.nominalCorpus)
+  const sipL    = fmtL(result.sip.postTaxCorpus)
+  const fdL     = fmtL(result.fd.postTaxCorpus)
+  const fdRealL = fmtL(result.fd.realCorpus)
+  const investedL = fmtL(result.sip.totalInvested)
+  const gapL    = fmtL(result.gapAmount)
+  const sipPct  = fmtPct(result.sip.realReturnPct)
+  const fdPct   = fmtPct(result.fd.realReturnPct)
+  const { monthlyAmount, durationYears, fdRate, sipCagr, taxSlab, inflationRate } = config.inputs
+  const amountStr = monthlyAmount.toLocaleString('en-IN')
+
+  // Use config.faqs if set, else build the same 5 auto-generated questions
+  // that FdVsSipPage renders. These two arrays MUST stay in sync.
+  const faqList = config.faqs ?? [
+    {
+      q: `Is ₹${amountStr}/month SIP in Equity Mutual Funds better than Fixed Deposit (FD) for ${durationYears} years?`,
+      a: `Based on estimated returns, yes — at a ${taxSlab}% tax slab. At ${sipCagr}% CAGR, SIP gives ${sipNomL} vs FD's ${fdNomL} before tax. After tax and inflation, SIP's estimated real return is ${sipPct}/yr vs FD's ${fdPct}/yr.`,
+    },
+    {
+      q: `What is ₹${amountStr}/month SIP worth after ${durationYears} years?`,
+      a: `At ${sipCagr}% CAGR, ₹${amountStr}/month SIP in Equity Mutual Funds for ${durationYears} years gives approximately ${sipNomL} on ${investedL} invested. After 12.5% LTCG tax on gains above ₹1.25L, you get approximately ${sipL}. Actual returns depend on market performance and are not guaranteed.`,
+    },
+    {
+      q: `What is ₹${amountStr}/month Fixed Deposit (FD) interest in ${durationYears} years?`,
+      a: `At ${fdRate}% interest, ₹${amountStr}/month FD for ${durationYears} years gives approximately ${fdNomL}. After ${taxSlab}% income tax on interest, approximately ${fdL}. With ${inflationRate}% annual inflation, that has the purchasing power of ${fdRealL} in today's money.`,
+    },
+    {
+      q: `In which year does SIP overtake Fixed Deposit (FD) for ₹${amountStr}/month?`,
+      a: `At ${sipCagr}% SIP and ${fdRate}% FD, SIP edges ahead from year 1, but the lead is small in early years. The gap accelerates after year 5 and reaches ${gapL} by year ${durationYears}. If you assume more conservative SIP returns (9–10%) or higher FD rates (8%+), FD can stay ahead through year 4 or 5.`,
+    },
+    {
+      q: `Is SIP in Equity Mutual Funds safe? What if markets crash?`,
+      a: `SIP in Equity Mutual Funds does not guarantee your capital — unlike Fixed Deposit. In 2020, equity mutual funds fell ~35% before recovering. Over any 10-year period in Indian market history, patient SIP investors have not had negative returns — but this is not a guarantee. If you need money on a specific date, FD is genuinely safer.`,
+    },
+  ]
 
   return [
     {
@@ -133,32 +173,11 @@ function buildSchemas(config: any, result: any, slugStr: string) {
     {
       '@context': 'https://schema.org',
       '@type': 'FAQPage',
-      mainEntity: [
-        {
-          '@type': 'Question',
-          name: `Is SIP better than FD for ${durationYears} years?`,
-          acceptedAnswer: {
-            '@type': 'Answer',
-            text: `SIP at ${sipCagr}% gives ${sipL} vs FD's ${fdL} over ${durationYears} years. After ${taxSlab}% tax and ${inflationRate}% inflation, real returns are SIP ${fmtPct(result.sip.realReturnPct)}/yr vs FD ${fmtPct(result.fd.realReturnPct)}/yr.`,
-          },
-        },
-        {
-          '@type': 'Question',
-          name: 'In which year does SIP overtake FD?',
-          acceptedAnswer: {
-            '@type': 'Answer',
-            text: `SIP overtakes FD around year ${result.breakEvenYear}. SIP finishes ${fmtL(result.gapAmount)} ahead by year ${durationYears}.`,
-          },
-        },
-        {
-          '@type': 'Question',
-          name: 'What is the real return on FD after tax and inflation?',
-          acceptedAnswer: {
-            '@type': 'Answer',
-            text: `Just ${fmtPct(result.fd.realReturnPct)} per year. After ${taxSlab}% income tax and ${inflationRate}% inflation, FD's ${fdRate}% rate leaves almost no real gain.`,
-          },
-        },
-      ],
+      mainEntity: faqList.map((f: { q: string; a: string }) => ({
+        '@type': 'Question',
+        name: f.q,
+        acceptedAnswer: { '@type': 'Answer', text: f.a },
+      })),
     },
   ]
 }

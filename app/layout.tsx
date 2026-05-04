@@ -145,7 +145,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className={`${sora.variable} ${dmMono.variable}`}>
+    <html lang="en" data-scroll-behavior="smooth" className={`${sora.variable} ${dmMono.variable}`}>
       <head>
         <link rel="icon" href="/favicon.ico" sizes="any" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
