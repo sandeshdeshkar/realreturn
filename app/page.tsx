@@ -172,6 +172,28 @@ export default function HomePage() {
     offers: { '@type': 'Offer', price: '0', priceCurrency: 'INR' },
   }
 
+  // CHANGE: New DefinedTerm schema — tells Google explicitly that this page
+  // defines the term "real return". Helps featured snippet eligibility on
+  // "what is real return" queries and AI engine citations (ChatGPT/Perplexity).
+  const definedTermSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'DefinedTerm',
+    name: 'Real return',
+    alternateName: [
+      'Real rate of return',
+      'Inflation-adjusted return',
+      'Real return on investment',
+    ],
+    description:
+      'Real return is the actual gain on an investment after subtracting taxes and inflation. For example, a 7% FD in the 30% tax bracket has a post-tax return of 4.9%. After 6% inflation, the real return drops to about −1.04% per year, meaning the money loses purchasing power even as the balance grows.',
+    inDefinedTermSet: {
+      '@type': 'DefinedTermSet',
+      name: 'Indian Personal Finance Glossary',
+      url: 'https://www.realreturn.in',
+    },
+    url: 'https://www.realreturn.in/#what-is-real-return',
+  }
+
   return (
     <>
       <Script
@@ -183,6 +205,12 @@ export default function HomePage() {
         id="webapp-schema"
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(webAppSchema) }}
+      />
+      {/* CHANGE: New DefinedTerm schema script — injected alongside FAQPage and WebApplication */}
+      <Script
+        id="definedterm-schema"
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(definedTermSchema) }}
       />
 
       <div className="page">
@@ -680,22 +708,26 @@ export default function HomePage() {
               </div>
 
               <div className="longform-block">
-                <h2>
-                  What is real return on investment in <span className="accent">India?</span>
+                {/* CHANGE: Added id="what-is-real-return" for anchor linking and DefinedTerm schema URL match.
+                    Dropped "in India" suffix — the rest of the page (FD, LTCG, ₹) already establishes
+                    Indian context, and "What is real return on investment?" reads more naturally. */}
+                <h2 id="what-is-real-return">
+                  What is real return on <span className="accent">investment?</span>
                 </h2>
+                {/* CHANGE: Tightened first paragraph to 44 words for snippet eligibility.
+                    Opens with bolded definition, includes concrete -1.04% anchor.
+                    Original explanatory paragraph moved to second position below. */}
                 <p>
-                  Real return is the actual return on your investment after adjusting for both tax
-                  and inflation. Most Indians focus on the nominal interest rate — the number their
-                  bank advertises. But this number is misleading because it does not account for
-                  two major deductions: the tax you pay on the interest earned, and the purchasing
-                  power lost to inflation.
+                  <strong>Real return is the actual gain on an investment after subtracting taxes and inflation.</strong>{' '}
+                  A 7% Fixed Deposit in the 30% tax bracket has a post-tax return of 4.9%. After
+                  6% inflation, the real return drops to about <strong>−1.04% per year</strong> —
+                  meaning your money loses purchasing power even as the balance grows.
                 </p>
                 <p>
-                  For example, a 7% Fixed Deposit sounds attractive. But if you are in the 30%
-                  income tax slab, your post-tax return drops to 4.9%. After adjusting for 6%
-                  inflation using the Fisher Equation, your real return is approximately{' '}
-                  <strong>−1.04% per year</strong>. Your bank balance grows, but your purchasing
-                  power actually shrinks every year.
+                  Most Indians focus on the nominal interest rate — the number their bank
+                  advertises. But this number is misleading because it does not account for two
+                  major deductions: the tax you pay on the interest earned, and the purchasing
+                  power lost to inflation.
                 </p>
                 <p>
                   In contrast, a Systematic Investment Plan (SIP) in an equity mutual fund at 12%
