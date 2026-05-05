@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { Sora, DM_Mono } from 'next/font/google'
+import { GoogleAnalytics } from '@next/third-parties/google'
 import Script from 'next/script'
 import './globals.css'
 
@@ -166,6 +167,8 @@ export default function RootLayout({
         />
 
         {children}
+        {/* Google Analytics */}
+        <GoogleAnalytics gaId="G-5FGRCB3FXK" />
       </body>
     </html>
   )
